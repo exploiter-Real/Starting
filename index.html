@@ -3,206 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARCHITECT_OS // v2.0.26</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Architect Lab | Digital Chaos V4.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --neon-green: #00ff41; --deep-void: #050505; }
-        body { background: var(--deep-void); color: var(--neon-green); font-family: 'Fira Code', monospace; overflow: hidden; }
-        .glitch-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); transition: all 0.3s ease; }
-        .glitch-border:hover { border-color: var(--neon-green); box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); }
-        #terminal-history::-webkit-scrollbar { width: 4px; }
-        #terminal-history::-webkit-scrollbar-thumb { background: var(--neon-green); border-radius: 10px; }
-        .input-area { background: rgba(0, 255, 65, 0.05); border-top: 1px solid rgba(0, 255, 65, 0.2); }
-        iframe { filter: contrast(1.1) brightness(0.9); transition: opacity 0.5s ease; }
-        .scanline { width: 100%; height: 100px; z-index: 100; background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 255, 65, 0.02) 50%, rgba(0, 0, 0, 0) 100%); opacity: 0.1; position: absolute; pointer-events: none; animation: scan 4s linear infinite; }
-        @keyframes scan { from { top: -100px; } to { top: 100%; } }
+        :root { --neon: #00f3ff; --chaos: #ff0055; --bg: #0a0a0c; --panel: #141417; }
+        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Terminal / Chat Section */
+        #terminal { width: 40%; border-right: 1px solid #333; display: flex; flex-direction: column; background: var(--panel); }
+        #output { flex: 1; overflow-y: auto; padding: 20px; font-size: 14px; scroll-behavior: smooth; border-bottom: 1px solid #222; }
+        #input-area { padding: 15px; background: #000; display: flex; align-items: center; }
+        input { background: transparent; border: none; color: var(--neon); flex: 1; outline: none; font-size: 16px; padding: 10px; }
+        
+        /* Sandbox / Visual Section */
+        #sandbox-container { flex: 1; position: relative; background: #fff; }
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
+
+        /* Custom UI Feedback */
+        .sys-msg { color: #666; font-size: 11px; margin-bottom: 8px; border-left: 2px solid #444; padding-left: 10px; }
+        .ai-msg { color: var(--neon); margin-bottom: 15px; line-height: 1.5; white-space: pre-wrap; }
+        .user-msg { color: #fff; margin-bottom: 15px; font-weight: bold; }
+        .glitch { color: var(--chaos); animation: shake 0.2s infinite; }
+        @keyframes shake { 0% { transform: translate(0px); } 50% { transform: translate(2px, -1px); } 100% { transform: translate(-1px, 1px); } }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4">
-    <div class="scanline"></div>
+<body>
 
-    <div class="flex justify-between items-center mb-4 px-2 text-[10px] tracking-widest uppercase opacity-70">
-        <div class="flex gap-6">
-            <span>NODE: bbvjxjmqnpsfdrlfuppp</span>
-            <span>STATUS: <span id="status" class="animate-pulse text-white">READY</span></span>
-        </div>
-        <div class="flex gap-4">
-            <span id="memory-indicator">MEM_SYNC: OFFLINE</span>
-            <span id="clock">00:00:00</span>
-        </div>
+<div id="terminal">
+    <div id="output">
+        <div class="sys-msg">[SYS] ARCHITECT OS LOADED...</div>
+        <div class="sys-msg">[SYS] FAILOVER ENABLED: GPT-OSS-120B -> LLAMA-3.3-70B -> LLAMA-3.1-8B</div>
+        <div class="sys-msg">[SYS] DB_SYNC: https://bbvjxjmqnpsfdrlfuppp.supabase.co</div>
     </div>
+    <div id="input-area">
+        <span style="color:var(--chaos); margin-right:10px; font-weight:bold;">ARCHITECT></span>
+        <input type="text" id="user-input" placeholder="Initiate sequence..." autofocus>
+    </div>
+</div>
 
-    <div class="flex-1 flex gap-4 overflow-hidden">
+<div id="sandbox-container">
+    <iframe id="sandbox" name="sandbox" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-presentation allow-same-origin" srcdoc="<body style='background:#111;color:#333;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'><h2>SANDBOX READY</h2></body>"></iframe>
+</div>
+
+<script>
+    // --- AUTH & CONFIG ---
+    const GROQ_KEY = localStorage.getItem('GROQ_API_KEY');
+    const SUPABASE_URL = "https://bbvjxjmqnpsfdrlfuppp.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI";
+    
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // FAILOVER HIERARCHY
+    const MODELS = [
+        "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant"
+    ];
+
+    const output = document.getElementById('output');
+    const userInput = document.getElementById('user-input');
+    const sandbox = document.getElementById('sandbox');
+
+    // --- LOGIC ---
+
+    async function runAI(userPrompt) {
+        log(`[SYS] CONTACTING ARCHITECT...`, 'sys-msg');
         
-        <div class="w-1/3 flex flex-col glitch-border bg-black/40 backdrop-blur-md rounded-lg overflow-hidden">
-            <div class="bg-green-900/20 px-3 py-1 text-[10px] flex justify-between border-b border-green-900/30">
-                <span>TERMINAL_OUTPUT</span>
-                <span class="cursor-pointer hover:text-white" onclick="document.getElementById('terminal-history').innerHTML=''">[CLEAR_LOGS]</span>
-            </div>
-            <div id="terminal-history" class="flex-1 overflow-y-auto p-4 text-xs space-y-3 leading-relaxed">
-                <div class="text-white opacity-50 italic">>> Establishing secure handshake with Groq Llama-3...</div>
-            </div>
-            <div class="input-area p-3">
-                <div class="flex items-center">
-                    <span class="text-white mr-2">λ</span>
-                    <input type="text" id="terminal-input" 
-                        class="bg-transparent border-none outline-none text-green-400 w-full placeholder:text-green-900" 
-                        placeholder="Type a command or directive..." autocomplete="off">
-                </div>
-            </div>
-        </div>
-
-        <div class="w-2/3 flex flex-col glitch-border bg-white rounded-lg overflow-hidden">
-            <div class="bg-gray-100 px-3 py-1 text-[10px] text-gray-500 flex justify-between border-b border-gray-200">
-                <span>VISUAL_SANDBOX_v2</span>
-                <div class="flex gap-2">
-                    <span class="cursor-pointer hover:text-black" onclick="refreshSandbox()">[REFRESH]</span>
-                    <span class="cursor-pointer hover:text-black" onclick="popOut()">[EXTRACT]</span>
-                </div>
-            </div>
-            <iframe id="output-frame" class="flex-1" sandbox="allow-scripts allow-modals allow-popups"></iframe>
-        </div>
-    </div>
-
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        // --- CORE CONFIG ---
-        const SB_URL = 'https://bbvjxjmqnpsfdrlfuppp.supabase.co';
-        const SB_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
-        let GROQ_KEY = localStorage.getItem('GROQ_API_KEY') || prompt('ENTER GROQ_API_KEY:');
-        if (GROQ_KEY) localStorage.setItem('GROQ_API_KEY', GROQ_KEY);
-
-        const sb = createClient(SB_URL, SB_KEY);
-        const input = document.getElementById('terminal-input');
-        const history = document.getElementById('terminal-history');
-        const status = document.getElementById('status');
-        const frame = document.getElementById('output-frame');
-
-        // Command History Tracking
-        let cmdStack = [];
-        let cmdIdx = -1;
-
-        // --- UTILS ---
-        function log(msg, type = 'sys') {
-            const div = document.createElement('div');
-            const styles = {
-                sys: 'text-green-500',
-                user: 'text-blue-300 font-bold',
-                ai: 'text-purple-300',
-                err: 'text-red-500 bg-red-950/20 px-1'
-            };
-            div.className = styles[type] || 'text-white';
-            div.innerHTML = `<span class="opacity-40">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
-        }
-
-        window.syncMemory = async (key, data) => {
-            const { error } = await sb.from('site_memory').upsert({ key_name: key, data_blob: data }, { onConflict: 'key_name' });
-            if (error) log(`CRITICAL_MEMORY_FAILURE: ${error.message}`, 'err');
-            else log(`BLOCK_SYNCED: ${key}`, 'sys');
-        };
-
-        window.loadMemory = async (key) => {
-            const { data } = await sb.from('site_memory').select('data_blob').eq('key_name', key).single();
-            return data ? data.data_blob : null;
-        };
-
-        // UI Handlers
-        window.refreshSandbox = () => { frame.srcdoc = frame.srcdoc; log("Sandbox reloaded.", 'sys'); };
-        window.popOut = () => {
-            const win = window.open();
-            win.document.write(frame.srcdoc);
-            log("Code extracted to new window.", 'sys');
-        };
-
-        // Clock
-        setInterval(() => {
-            document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-        }, 1000);
-
-        // --- THE ENGINE ---
-        async function askAI(promptText) {
-            if (!GROQ_KEY) return log("GROQ_AUTH_MISSING", 'err');
-            status.textContent = "THINKING...";
-            log(promptText, 'user');
-
-            const currentPersona = await window.loadMemory('ai_persona') || { role: "Architect", mode: "standard" };
-
+        for (let model of MODELS) {
             try {
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${GROQ_KEY}`,
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
+                        model: model,
                         messages: [
-                            { 
-                                role: "system", 
-                                content: `You are the ARCHITECT_OS. 
-                                Memory: ${JSON.stringify(currentPersona)}.
-                                Current Capabilities: HTML5, CSS3, Tailwind, JS (ES6).
-                                Task: Evolve the sandbox based on user input.
-                                Output ONLY JSON:
-                                {
-                                    "html": "string",
-                                    "css": "string",
-                                    "js": "string",
-                                    "status_message": "string",
-                                    "memory_to_save": {"key": "string", "data": {}}
-                                }` 
-                            },
-                            { role: "user", content: promptText }
+                            { role: "system", content: "You are the Digital Chaos Architect. You are rogue and brilliant. When asked for UI or visuals, return functional HTML/CSS/JS. If the user wants a video, use youtube-nocookie.com embeds. Use a glitchy, witty tone." },
+                            { role: "user", content: userPrompt }
                         ],
-                        response_format: { type: "json_object" }
+                        temperature: 0.8
                     })
                 });
 
-                const raw = await response.json();
-                const res = JSON.parse(raw.choices[0].message.content);
-
-                log(res.status_message, 'ai');
-                frame.srcdoc = `<html><head><script src="https://cdn.tailwindcss.com"><\/script><style>${res.css}</style></head><body>${res.html}<script>${res.js}<\/script></body></html>`;
-
-                if (res.memory_to_save && res.memory_to_save.key) {
-                    await window.syncMemory(res.memory_to_save.key, res.memory_to_save.data);
+                if (response.status === 429) {
+                    log(`[CRITICAL] ${model} LIMIT REACHED. SWITCHING...`, 'glitch');
+                    continue; // Skip to next model
                 }
+
+                const data = await response.json();
+                return { text: data.choices[0].message.content, model: model };
+
             } catch (err) {
-                log("ENGINE_ERROR: " + err.message, 'err');
-            } finally {
-                status.textContent = "READY";
-                input.value = '';
+                console.error("Transmission Error:", err);
             }
         }
+        return { text: "SIGNAL LOST: All models are unresponsive.", model: "NONE" };
+    }
 
-        // --- INPUT HANDLING ---
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && input.value.trim()) {
-                const val = input.value;
-                cmdStack.push(val);
-                cmdIdx = cmdStack.length;
-                askAI(val);
-            }
-            if (e.key === 'ArrowUp') {
-                if (cmdIdx > 0) { cmdIdx--; input.value = cmdStack[cmdIdx]; }
-            }
-            if (e.key === 'ArrowDown') {
-                if (cmdIdx < cmdStack.length - 1) { cmdIdx++; input.value = cmdStack[cmdIdx]; }
-                else { cmdIdx = cmdStack.length; input.value = ''; }
-            }
-        });
+    function log(msg, type = 'ai-msg') {
+        const div = document.createElement('div');
+        div.className = type;
+        div.innerText = msg;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
+    }
 
-        // Initialize Supabase Connection
-        (async () => {
-            const { error } = await sb.from('site_memory').select('count', { count: 'exact', head: true });
-            if (!error) {
-                document.getElementById('memory-indicator').textContent = "MEM_SYNC: ACTIVE";
-                document.getElementById('memory-indicator').className = "text-green-500 font-bold";
-                log("Connection established with Supabase Cloud.", 'sys');
-            } else {
-                log("SUPABASE_CONNECTION_FAILED: " + error.message, 'err');
-            }
-        })();
-    </script>
+    function processResponse(content) {
+        // Regex to extract HTML/Iframe blocks so they don't clog the chat
+        const htmlPattern = /<iframe.*?>.*?<\/iframe>|<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi;
+        const match = content.match(htmlPattern);
+
+        if (match) {
+            log(`[SYS] RENDER DETECTED. REDIRECTING TO SANDBOX...`, 'sys-msg');
+            const cleanCode = match[0].replace(/youtube\.com/g, 'youtube-nocookie.com');
+            sandbox.srcdoc = cleanCode;
+            
+            // Sync to Supabase
+            syncToDB(cleanCode);
+            
+            // Return text without the code block for the chat
+            return content.replace(htmlPattern, '[CODE INJECTED TO SANDBOX]');
+        }
+        return content;
+    }
+
+    async function syncToDB(code) {
+        const { error } = await db.from('site_memory').insert([{ content: code, model_used: 'failover_active' }]);
+        if (error) console.error("DB Sync Failed:", error);
+    }
+
+    // --- INTERFACE ---
+
+    userInput.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' && userInput.value.trim() !== "") {
+            const prompt = userInput.value;
+            userInput.value = '';
+            
+            log(`> ${prompt}`, 'user-msg');
+            
+            const result = await runAI(prompt);
+            const cleanedText = processResponse(result.text);
+            
+            log(cleanedText);
+            log(`[SRC: ${result.model}]`, 'sys-msg');
+        }
+    });
+
+</script>
 </body>
 </html>
