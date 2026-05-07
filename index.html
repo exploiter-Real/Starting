@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caveman AI</title>
+</head>
+<body style="background:#121212; color:#0f0; font-family:monospace; padding:20px;">
+    <h3>CAVEMAN AI TERMINAL</h3>
+    
+    <textarea id="p" style="width:100%; height:100px; background:#222; color:#fff;" placeholder="speak caveman..."></textarea><br><br>
+    
+    <button id="s" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold;">OOGA (SEND)</button>
+    
+    <hr>
+    <div id="out">waiting for command...</div>
+
+    <script type="module">
+        import OpenAI from 'https://esm.run/openai';
+
+        document.getElementById('s').onclick = async () => {
+            const userKey = prompt("Paste your Groq API Key:");
+            if (!userKey) return;
+
+            document.getElementById('out').innerText = "THINKING...";
+            
+            try {
+                const groq = new OpenAI({
+                    apiKey: userKey,
+                    dangerouslyAllowBrowser: true,
+                    baseURL: "https://api.groq.com/openai/v1"
+                });
+
+                const res = await groq.chat.completions.create({
+                    messages: [{ role: 'user', content: document.getElementById('p').value }],
+                    model: "llama-3.1-8b-instant"
+                });
+                
+                document.getElementById('out').innerText = res.choices[0].message.content;
+            } catch (e) {
+                document.getElementById('out').innerText = "ERROR: " + e.message;
+            }
+        };
+    </script>
+</body>
+</html>
