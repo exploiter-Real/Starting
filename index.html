@@ -1,26 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Caveman AI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI System Architect</title>
 </head>
-<body style="background:#121212; color:#0f0; font-family:monospace; padding:20px;">
-    <h3>CAVEMAN AI TERMINAL</h3>
+<body id="main-body" style="background:#0a0a0a; color:#0f0; font-family:monospace; padding:20px; transition: all 0.5s ease;">
+
+    <div id="ui-container">
+        <h2 style="border-bottom: 2px solid #0f0; padding-bottom: 10px;">SYSTEM ARCHITECT v2.0 // GOD MODE</h2>
+        
+        <p>Input Directives (AI will execute live code):</p>
+        <textarea id="p" style="width:100%; height:80px; background:#111; color:#0f0; border:1px solid #0f0; padding:10px; box-sizing:border-box; font-family:monospace;" placeholder="e.g. 'Build a clock' or 'Make the site spin and turn red'"></textarea><br><br>
+        
+        <button id="s" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold; border:none; cursor:pointer; font-family:monospace;">INITIALIZE INJECTION</button>
+    </div>
+
+    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
     
-    <textarea id="p" style="width:100%; height:100px; background:#222; color:#fff;" placeholder="speak caveman..."></textarea><br><br>
-    
-    <button id="s" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold;">OOGA (SEND)</button>
-    
-    <hr>
-    <div id="out">waiting for command...</div>
+    <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">EXECUTION LOG:</div>
+    <div id="out" style="white-space:pre-wrap; background:#000; padding:15px; border:1px dashed #444; color:#0f0; font-size:12px;">System Idle...</div>
+
+    <div id="injection-point" style="margin-top:20px;"></div>
 
     <script type="module">
         import OpenAI from 'https://esm.run/openai';
 
         document.getElementById('s').onclick = async () => {
-            const userKey = prompt("Paste your Groq API Key:");
+            const out = document.getElementById('out');
+            const promptContent = document.getElementById('p').value;
+            const injectPoint = document.getElementById('injection-point');
+            
+            const userKey = prompt("Enter Admin Access Key:");
             if (!userKey) return;
 
-            document.getElementById('out').innerText = "THINKING...";
+            out.innerText = "COMPILING DIRECTIVES...";
             
             try {
                 const groq = new OpenAI({
@@ -30,13 +44,48 @@
                 });
 
                 const res = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: document.getElementById('p').value }],
-                    model: "llama-3.1-8b-instant"
+                    messages: [
+                        { 
+                            role: 'system', 
+                            content: `You are a Website Architect. You output ONLY JSON.
+                            You have full control over the page. 
+                            Format your response exactly like this:
+                            {
+                                "css_styles": "string of CSS code to apply to body",
+                                "html_content": "string of HTML to insert into the page",
+                                "js_logic": "string of JavaScript to execute immediately",
+                                "status": "short description of what you did"
+                            }`
+                        },
+                        { role: 'user', content: promptContent }
+                    ],
+                    model: "llama-3.3-70b-versatile", // Using the bigger model for better coding
+                    response_format: { "type": "json_object" }
                 });
                 
-                document.getElementById('out').innerText = res.choices[0].message.content;
+                const data = JSON.parse(res.choices[0].message.content);
+                
+                // 1. INJECT CSS
+                if (data.css_styles) {
+                    document.body.style.cssText += data.css_styles;
+                }
+
+                // 2. INJECT HTML
+                if (data.html_content) {
+                    injectPoint.innerHTML = data.html_content;
+                }
+
+                // 3. INJECT & RUN JAVASCRIPT
+                if (data.js_logic) {
+                    const scriptTag = document.createElement('script');
+                    scriptTag.textContent = data.js_logic;
+                    document.body.appendChild(scriptTag);
+                }
+                
+                out.innerText = `[SUCCESS]\nSTATUS: ${data.status}\n\n[RAW DATA RECEIVED]:\n${JSON.stringify(data, null, 2)}`;
+
             } catch (e) {
-                document.getElementById('out').innerText = "ERROR: " + e.message;
+                out.innerText = "CRITICAL FAILURE: " + e.message;
             }
         };
     </script>
