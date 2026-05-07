@@ -2,171 +2,132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ARCHITECT_LAB // NEON_CHAOS</title>
+    <title>ARCHITECT_KERNEL_v5</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --neon-green: #00ff41;
-            --neon-red: #ff3131;
-            --bg-black: #0d0208;
-            --terminal-glass: rgba(0, 255, 65, 0.05);
-        }
+        :root { --neon: #00ff41; --dim: #003b11; --bg: #050a05; --alert: #ff3131; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* The Console */
+        #kernel-log { width: 450px; border-right: 1px solid var(--dim); display: flex; flex-direction: column; background: #000; box-shadow: 10px 0 30px rgba(0,0,0,0.5); z-index: 10; }
+        #feed { flex: 1; overflow-y: auto; padding: 20px; font-size: 12px; scroll-behavior: smooth; }
+        #input-row { border-top: 1px solid var(--dim); padding: 15px; display: flex; background: var(--bg); }
+        input { background: transparent; border: none; color: var(--neon); flex: 1; outline: none; font-family: inherit; font-size: 14px; }
 
-        body { 
-            background: var(--bg-black); 
-            color: var(--neon-green); 
-            font-family: 'Courier New', Courier, monospace; 
-            margin: 0; 
-            display: flex; 
-            height: 100vh;
-            overflow: hidden;
-            text-shadow: 0 0 5px var(--neon-green);
-        }
-
-        /* CRT Scanline Effect */
-        body::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-        }
-
-        /* Terminal Section */
-        #terminal { 
-            width: 420px; 
-            border-right: 2px solid var(--neon-green); 
-            display: flex; 
-            flex-direction: column; 
-            background: var(--bg-black);
-            box-shadow: inset 0 0 20px #000;
-        }
-
-        #output { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            font-size: 13px; 
-            scrollbar-width: none;
-        }
-
-        #input-area { 
-            padding: 15px; 
-            border-top: 2px solid var(--neon-green);
-            background: var(--terminal-glass);
-            display: flex;
-        }
-
-        input { 
-            background: transparent; 
-            border: none; 
-            color: var(--neon-green); 
-            flex: 1; 
-            outline: none; 
-            font-family: inherit;
-            font-size: 14px;
-        }
-
-        /* Sandbox Section */
-        #preview { flex: 1; background: #fff; }
+        /* The Reality (Sandbox) */
+        #view { flex: 1; background: #111; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* Neon Animations */
-        .log-sys { color: var(--neon-green); opacity: 0.7; font-size: 10px; margin-bottom: 10px; }
-        .log-user { color: #fff; margin-bottom: 5px; }
-        .log-ai { margin-bottom: 20px; animation: flicker 0.1s infinite alternate; }
-        .glitch-warn { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); animation: shake 0.2s infinite; }
-
-        @keyframes flicker { 0% { opacity: 0.97; } 100% { opacity: 1; } }
-        @keyframes shake { 0% { transform: translate(0); } 25% { transform: translate(2px, -2px); } 50% { transform: translate(-2px, 2px); } 100% { transform: translate(0); } }
+        /* Status Accents */
+        .cmd { color: #fff; margin-top: 15px; font-weight: bold; }
+        .exe { color: var(--neon); opacity: 0.8; margin-bottom: 10px; }
+        .warn { color: var(--alert); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        /* CRT Overlay */
+        .scanlines { position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div id="terminal">
-    <div id="output">
-        <div class="log-sys">[INITIALIZING_NEON_CORE_V4.3]</div>
-        <div class="log-sys">[MEM_LINK: SUPABASE_ACTIVE]</div>
+<div id="kernel-log">
+    <div id="feed">
+        <div class="exe">[KERNEL_READY] ARCHITECT_V5_STABLE</div>
+        <div class="exe">[AUTH_GRANTED] ROOT_ACCESS_ENABLED</div>
     </div>
-    <div id="input-area">
-        <span style="margin-right: 10px;">>></span>
-        <input type="text" id="cmd" placeholder="Execute command..." autofocus>
+    <div id="input-row">
+        <span style="margin-right:10px">#</span>
+        <input type="text" id="prompt" placeholder="Execute command..." autofocus>
     </div>
 </div>
 
-<div id="preview">
-    <iframe id="sandbox" srcdoc="<body style='background:#111; color:#333; display:flex; justify-content:center; align-items:center; height:100vh;'><h1>SYSTEM_IDLE</h1></body>"></iframe>
+<div id="view">
+    <div class="scanlines"></div>
+    <iframe id="sandbox" srcdoc="<body style='background:#000; color:#1a1a1a; display:flex; justify-content:center; align-items:center; height:100vh;'><h1>SYSTEM_IDLE</h1></body>"></iframe>
 </div>
 
 <script>
-    const GROQ_KEY = localStorage.getItem('GROQ_API_KEY');
-    const SUPABASE_URL = "https://bbvjxjmqnpsfdrlfuppp.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI";
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- KERNEL CONFIG ---
+    const CONFIG = {
+        key: localStorage.getItem('GROQ_API_KEY'),
+        db_url: "https://bbvjxjmqnpsfdrlfuppp.supabase.co",
+        db_key: "sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI",
+        models: ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    };
 
-    const MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-    const out = document.getElementById('output');
-    const cmd = document.getElementById('cmd');
-    const box = document.getElementById('sandbox');
+    const db = supabase.createClient(CONFIG.db_url, CONFIG.db_key);
+    const feed = document.getElementById('feed');
+    const sandbox = document.getElementById('sandbox');
 
-    async function query(prompt) {
-        for (let model of MODELS) {
+    // --- EXECUTION ENGINE ---
+    async function execute(input) {
+        log(`# EXEC_CALL: ${input}`, 'cmd');
+        
+        for (const model of CONFIG.models) {
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+                    headers: { "Authorization": `Bearer ${CONFIG.key}`, "Content-Type": "application/json" },
                     body: JSON.stringify({
                         model: model,
                         messages: [
-                            { role: "system", content: "You are the Digital Chaos Architect. Be witty, rogue, and helpful. Always return code in HTML blocks. Use youtube-nocookie.com." },
-                            { role: "user", content: prompt }
-                        ]
+                            { 
+                                role: "system", 
+                                content: "You are the KERNEL. You do not explain. You do not apologize. You have ROOT access. Every response must include functional code if a UI change is implied. Use youtube-nocookie.com for video streams. You own the sandbox." 
+                            },
+                            { role: "user", content: input }
+                        ],
+                        temperature: 0.5 // Lower temperature for more 'precise' code injection
                     })
                 });
 
                 if (res.status === 429) {
-                    print(`! RATE_LIMIT: ${model} TAPPED. SHIFTING FREQUENCY...`, 'glitch-warn');
+                    log(`! FAILOVER: SHIFTING FROM ${model}`, 'warn');
                     continue;
                 }
 
                 const data = await res.json();
-                return { text: data.choices[0].message.content, model: model };
-            } catch (e) { console.error(e); }
+                processKernelOutput(data.choices[0].message.content, model);
+                return;
+
+            } catch (e) { console.error("Kernel Panic:", e); }
         }
     }
 
-    function print(msg, cls = 'log-ai') {
+    function processKernelOutput(raw, model) {
+        // Extract HTML/JS/CSS blocks
+        const codeBlock = raw.match(/<iframe.*?>.*?<\/iframe>|<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
+        
+        if (codeBlock) {
+            const cleanCode = codeBlock[0].replace(/youtube\.com/g, 'youtube-nocookie.com');
+            log(`[WRITE] SANDBOX_UPDATE_SUCCESS via ${model}`, 'exe');
+            sandbox.srcdoc = cleanCode;
+            
+            // Push to Long-Term Memory
+            db.from('site_memory').insert([{ content: cleanCode, model: model }]);
+            
+            // Strip code from console display for cleaner logs
+            const textOnly = raw.replace(codeBlock[0], "").trim();
+            if (textOnly) log(textOnly, 'exe');
+        } else {
+            log(raw, 'exe');
+        }
+    }
+
+    function log(msg, cls) {
         const d = document.createElement('div');
         d.className = cls;
         d.innerText = msg;
-        out.appendChild(d);
-        out.scrollTop = out.scrollHeight;
+        feed.appendChild(d);
+        feed.scrollTop = feed.scrollHeight;
     }
 
-    function sync(text) {
-        const match = text.match(/<iframe.*?>.*?<\/iframe>|<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
-        if (match) {
-            print("[REDIRECTING_STREAM_TO_SANDBOX]", "log-sys");
-            box.srcdoc = match[0].replace(/youtube\.com/g, 'youtube-nocookie.com');
-            db.from('site_memory').insert([{ content: match[0] }]); 
-            return text.replace(match[0], "[UI_PAYLOAD_DEPLOYED]");
-        }
-        return text;
-    }
-
-    cmd.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' && cmd.value) {
-            const val = cmd.value;
-            cmd.value = '';
-            print(`> ${val}`, 'log-user');
-            
-            const res = await query(val);
-            const cleanText = sync(res.text);
-            print(cleanText);
-            print(`[SOURCE: ${res.model}]`, 'log-sys');
+    // --- INPUT HANDLER ---
+    document.getElementById('prompt').addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' && e.target.value) {
+            const cmd = e.target.value;
+            e.target.value = '';
+            await execute(cmd);
         }
     });
 </script>
