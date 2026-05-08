@@ -1,44 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Caveman AI</title>
+    <title>ARCHIVE_KRNL_V2.2</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <style>
+        body { background: #050a05; color: #0f0; font-family: monospace; padding: 20px; overflow-x: hidden; }
+        textarea { width: 100%; height: 100px; background: #000; border: 1px solid #004400; color: #0f0; padding: 15px; font-family: inherit; outline: none; box-sizing: border-box; }
+        button { width: 100%; padding: 20px; background: #0f0; color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:hover { background: #fff; }
+        #out { margin-top: 20px; border-left: 3px solid #0f0; padding-left: 20px; white-space: pre-wrap; line-height: 1.5; color: #0f0; }
+        .sys { color: #004400; font-size: 11px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        hr { border: 0; border-top: 1px solid #002200; margin: 20px 0; }
+    </style>
 </head>
-<body style="background:#121212; color:#0f0; font-family:monospace; padding:20px;">
-    <h3>CAVEMAN AI TERMINAL</h3>
+<body>
+
+    <div class="sys" id="status">INIT_BOOT_SEQUENCE...</div>
+    <h2 style="letter-spacing:3px;">ARCHIVE_KRNL // KNOWLEDGE_BASE</h2>
     
-    <textarea id="p" style="width:100%; height:100px; background:#222; color:#fff;" placeholder="speak caveman..."></textarea><br><br>
-    
-    <button id="s" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold;">OOGA (SEND)</button>
+    <textarea id="p" placeholder="Enter command (e.g. 'Matrix Mode', 'Explain API', 'Python Loop')..."></textarea>
+    <button id="s">OOGA (CONSULT_ARCHIVE)</button>
     
     <hr>
-    <div id="out">waiting for command...</div>
+    <div id="out">SYSTEM_READY // NO_SAFEGUARDS_DETECTED</div>
 
     <script type="module">
-        import OpenAI from 'https://esm.run/openai';
+        let pyodide;
+        let archiveData = "";
+
+        // --- GITHUB CONFIG ---
+        // Replace with your actual GitHub username and repo name
+        const USER = "YOUR_GITHUB_USERNAME";
+        const REPO = "YOUR_REPO_NAME";
+        const FILE = "knowledge.txt"; 
+        // ---------------------
+
+        async function init() {
+            try {
+                pyodide = await loadPyodide();
+                document.getElementById('status').innerText = "PYTHON_ENGINE_LOADED // FETCHING_BRAIN...";
+
+                const res = await fetch(`https://raw.githubusercontent.com/${USER}/${REPO}/main/${FILE}`);
+                if (!res.ok) throw new Error("File not found");
+                archiveData = await res.text();
+
+                document.getElementById('status').innerText = "KERNEL_ONLINE // 10_SECTIONS_LOADED";
+            } catch (e) {
+                document.getElementById('status').innerText = "ERROR: CHECK GITHUB CONFIG";
+                console.error(e);
+            }
+        }
 
         document.getElementById('s').onclick = async () => {
-            const userKey = prompt("Paste your Groq API Key:");
-            if (!userKey) return;
+            const query = document.getElementById('p').value.trim().toLowerCase();
+            const out = document.getElementById('out');
+            if (!query) return;
 
-            document.getElementById('out').innerText = "THINKING...";
-            
-            try {
-                const groq = new OpenAI({
-                    apiKey: userKey,
-                    dangerouslyAllowBrowser: true,
-                    baseURL: "https://api.groq.com/openai/v1"
-                });
+            out.innerText = "SCANNING_RECORDS...";
 
-                const res = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: document.getElementById('p').value }],
-                    model: "llama-3.1-8b-instant"
+            // Match chunks of text separated by "---"
+            const sections = archiveData.split('---');
+            let results = [];
+
+            sections.forEach(section => {
+                let score = 0;
+                const searchTerms = query.split(' ');
+                searchTerms.forEach(term => {
+                    if (section.toLowerCase().includes(term)) score++;
                 });
-                
-                document.getElementById('out').innerText = res.choices[0].message.content;
-            } catch (e) {
-                document.getElementById('out').innerText = "ERROR: " + e.message;
+                if (score > 0) results.push({ content: section.trim(), score });
+            });
+
+            results.sort((a, b) => b.score - a.score);
+
+            if (results.length > 0) {
+                const winner = results[0].content;
+                out.innerText = winner;
+
+                // AUTOMATIC EXECUTION LOGIC
+                // Looks for "Command:" or "py:" tags in your txt file
+                try {
+                    // Check for JavaScript Command
+                    if (winner.includes("Command:")) {
+                        const jsCode = winner.split("Command:")[1].split("Explanation:")[0].trim();
+                        new Function(jsCode)();
+                    } 
+                    // Check for Python Example
+                    else if (winner.includes("print(")) {
+                        const pyCode = winner.split("Explanation:")[0].replace(/Python .* Example/g, "").trim();
+                        const pyRes = await pyodide.runPythonAsync(pyCode);
+                        out.innerText += `\n\n[PY_OUTPUT]: ${pyRes}`;
+                    }
+                } catch(err) {
+                    out.innerText += `\n\n[EXEC_ERR]: ${err.message}`;
+                }
+            } else {
+                out.innerText = "QUERY_FAILED: NO_DATA_MATCHED_IN_ARCHIVE";
             }
         };
+
+        init();
     </script>
 </body>
 </html>
