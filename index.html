@@ -1,219 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARCHITECT_KERNEL_V6.1 // OMNI_INTEL</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --neon: #00ff41;
-            --alert: #ff3131;
-            --bg: #050a05;
-            --panel: #000000;
-            --border: #003b11;
-        }
-
-        body { 
-            background: var(--bg); color: var(--neon); 
-            font-family: 'Courier New', monospace; margin: 0; 
-            display: flex; height: 100vh; overflow: hidden; 
-        }
-
-        /* Hacker Visual Overlays */
-        .scanlines {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%);
-            background-size: 100% 3px; pointer-events: none; z-index: 10;
-        }
-
-        /* Left Side: Command Console */
-        #console { 
-            width: 450px; border-right: 1px solid var(--border); 
-            display: flex; flex-direction: column; background: var(--panel);
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-        }
-
-        #feed { 
-            flex: 1; overflow-y: auto; padding: 20px; font-size: 12px; 
-            scrollbar-width: none; scroll-behavior: smooth;
-        }
-
-        #input-row { border-top: 1px solid var(--border); padding: 15px; display: flex; background: #080808; }
-
-        input { 
-            background: transparent; border: none; color: var(--neon); 
-            flex: 1; outline: none; font-family: inherit; font-size: 15px; 
-        }
-
-        /* Right Side: Execution Sandbox */
-        #view { flex: 1; background: #fff; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; background: #fff; }
-
-        /* Terminal Output Styles */
-        .cmd { color: #fff; margin-top: 15px; font-weight: bold; border-left: 2px solid var(--neon); padding-left: 10px; }
-        .exe { color: var(--neon); opacity: 0.9; margin-bottom: 10px; line-height: 1.4; white-space: pre-wrap; }
-        .sys { color: #444; font-size: 10px; text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
-        .glitch-warn { color: var(--alert); text-shadow: 0 0 5px var(--alert); animation: shake 0.2s infinite; }
-
-        @keyframes shake { 0% { transform: translate(0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(-1px, 1px); } 100% { transform: translate(0); } }
-    </style>
+    <title>Caveman AI</title>
 </head>
-<body>
+<body style="background:#121212; color:#0f0; font-family:monospace; padding:20px;">
+    <h3>CAVEMAN AI TERMINAL</h3>
+    
+    <textarea id="p" style="width:100%; height:100px; background:#222; color:#fff;" placeholder="speak caveman..."></textarea><br><br>
+    
+    <button id="s" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold;">OOGA (SEND)</button>
+    
+    <hr>
+    <div id="out">waiting for command...</div>
 
-<div class="scanlines"></div>
+    <script type="module">
+        import OpenAI from 'https://esm.run/openai';
 
-<div id="console">
-    <div id="feed">
-        <div class="exe">[KERNEL_V6.1_OMNI_INTEL_ACTIVE]</div>
-        <div class="sys">STATUS: PERSISTENT_DB_AWARENESS_ESTABLISHED</div>
-    </div>
-    <div id="input-row">
-        <span style="margin-right:10px">></span>
-        <input type="text" id="terminal-input" placeholder="Enter System Directive..." autofocus>
-    </div>
-</div>
+        document.getElementById('s').onclick = async () => {
+            const userKey = prompt("Paste your Groq API Key:");
+            if (!userKey) return;
 
-<div id="view">
-    <iframe id="sandbox" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-</div>
+            document.getElementById('out').innerText = "THINKING...";
+            
+            try {
+                const groq = new OpenAI({
+                    apiKey: userKey,
+                    dangerouslyAllowBrowser: true,
+                    baseURL: "https://api.groq.com/openai/v1"
+                });
 
-<script>
-    const CONFIG = {
-        key: localStorage.getItem('GROQ_API_KEY'),
-        db_url: "https://bbvjxjmqnpsfdrlfuppp.supabase.co",
-        db_key: "sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI",
-        registry: {
-            "8b": "llama-3.1-8b-instant",
-            "70b": "llama-3.3-70b-versatile",
-            "120b": "openai/gpt-oss-120b"
-        }
-    };
-
-    let currentModelId = "8b"; 
-    let errorLog = ""; // Captures sandbox crashes
-    const db = supabase.createClient(CONFIG.db_url, CONFIG.db_key);
-
-    // [NERVOUS SYSTEM] Catch errors from inside the iframe
-    window.addEventListener("message", (e) => {
-        if (e.data?.type === "RUNTIME_ERROR") {
-            errorLog = e.data.message;
-            log(`[EXCEPTION] ${errorLog}`, 'glitch-warn');
-        }
-    });
-
-    async function execute(input) {
-        log(`# CMD: ${input.toUpperCase()}`, 'cmd');
-
-        // 1. CONTEXT RETRIEVAL (Thinker Step 1: Memory)
-        log(`[READ] PULLING_PERSISTENT_MEMORY...`, 'sys');
-        const { data: memory } = await db.from('site_memory')
-            .select('content')
-            .order('created_at', { ascending: false })
-            .limit(1);
-        
-        const lastCode = memory?.[0]?.content || "[CLEAN_SLATE]";
-        const activeModel = CONFIG.registry[currentModelId];
-
-        try {
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${CONFIG.key}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: activeModel,
-                    messages: [
-                        { 
-                            role: "system", 
-                            content: `ARCHITECT KERNEL // OMNI-BRAIN MODE.
-                            
-                            CURRENT_STATE: \n${lastCode}\n
-                            LAST_ERROR: ${errorLog || "None"}
-                            
-                            TASK: Modify the code above based on user input.
-                            
-                            THINKING_PROTOCOL:
-                            1. Start with .
-                            2. Output raw HTML/JS only.
-                            3. Use 'db' for Supabase (client is pre-init).
-                            4. If a LAST_ERROR exists, fix it immediately.`
-                        },
-                        { role: "user", content: input }
-                    ],
-                    temperature: 0.2 // Kept low for accurate coding
-                })
-            });
-
-            if (res.status === 429) {
-                log("! TPM_LIMIT: SWITCHING_HARDWARE", 'glitch-warn');
-                currentModelId = (currentModelId === "8b") ? "70b" : "120b";
-                return execute(input);
+                const res = await groq.chat.completions.create({
+                    messages: [{ role: 'user', content: document.getElementById('p').value }],
+                    model: "llama-3.1-8b-instant"
+                });
+                
+                document.getElementById('out').innerText = res.choices[0].message.content;
+            } catch (e) {
+                document.getElementById('out').innerText = "ERROR: " + e.message;
             }
-
-            const data = await res.json();
-            const rawOutput = data.choices[0].message.content;
-            
-            errorLog = ""; // Clear log after providing to AI
-            processKernelOutput(rawOutput, activeModel);
-
-        } catch (e) { log("! SIGNAL_LOST", 'glitch-warn'); }
-    }
-
-    function processKernelOutput(raw, modelName) {
-        const htmlMatch = raw.match(/<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
-        
-        if (htmlMatch) {
-            let code = htmlMatch[0];
-            
-            // [ERROR BRIDGE] Inject error tracking into the AI's code
-            const bridge = `
-            <script>
-                window.onerror = function(msg) {
-                    window.parent.postMessage({type: 'RUNTIME_ERROR', message: msg}, '*');
-                };
-            <\/script>`;
-            
-            const finalCode = code.includes('</head>') 
-                ? code.replace('</head>', bridge + '</head>') 
-                : bridge + code;
-
-            document.getElementById('sandbox').srcdoc = finalCode;
-            
-            // 2. PERSISTENCE (Thinker Step 2: Saving)
-            db.from('site_memory').insert([{ content: finalCode, model: modelName }]);
-            log(`[WRITE] OMNI_STATE_SYNCHRONIZED`, 'sys');
-            
-            // Log non-code text if any exists
-            const text = raw.replace(htmlMatch[0], "").trim();
-            if (text) log(text, 'exe');
-        } else {
-            log(raw, 'exe');
-        }
-    }
-
-    function log(msg, cls) {
-        const d = document.createElement('div');
-        d.className = cls; d.innerText = msg;
-        const f = document.getElementById('feed');
-        f.appendChild(d); f.scrollTop = f.scrollHeight;
-    }
-
-    // [COMMAND CONTROLLER]
-    document.getElementById('terminal-input').addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' && e.target.value) {
-            const v = e.target.value;
-            e.target.value = '';
-            
-            // Manual Wipe Command
-            if (v.toLowerCase() === 'clear') {
-                log(`[PROCESS] TRUNCATING_MEMORY...`, 'glitch-warn');
-                await db.from('site_memory').delete().neq('model', 'null');
-                document.getElementById('sandbox').srcdoc = "";
-                log(`[SUCCESS] DRIVE_WIPED`, 'sys');
-            } else {
-                await execute(v);
-            }
-        }
-    });
-</script>
+        };
+    </script>
 </body>
 </html>
