@@ -2,15 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ARCHITECT_KERNEL_V6.2 // AWARENESS_PATCH</title>
+    <title>ARCHITECT_KERNEL_V6.3 // INCEPTION_FIX</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --neon: #00ff41;
-            --alert: #ff3131;
-            --bg: #050a05;
-            --panel: #000000;
-            --border: #003b11;
+            --neon: #00ff41; --alert: #ff3131; --bg: #050a05;
+            --panel: #000000; --border: #003b11;
         }
 
         body { 
@@ -59,8 +56,8 @@
 
 <div id="console">
     <div id="feed">
-        <div class="exe">[ENGINE_INITIALIZED]</div>
-        <div class="sys">PRIORITY: EXECUTION | MODE: NON-CONVERSATIONAL</div>
+        <div class="exe">[KERNEL_V6.3_ONLINE]</div>
+        <div class="sys">CORE_REWRITE: IFRAME_STRIPPING_ENABLED</div>
     </div>
     <div id="input-row">
         <span style="margin-right:10px">></span>
@@ -69,7 +66,7 @@
 </div>
 
 <div id="view">
-    <iframe id="sandbox" srcdoc="<body style='background:#000; color:#00ff41; display:flex; justify-content:center; align-items:center; height:100vh; font-family:monospace;'>[STANDBY_FOR_PAYLOAD]</body>"></iframe>
+    <iframe id="sandbox" srcdoc="<body style='background:#000; color:#00ff41; display:flex; justify-content:center; align-items:center; height:100vh; font-family:monospace;'>[READY]</body>"></iframe>
 </div>
 
 <script>
@@ -91,7 +88,6 @@
 
     async function execute(input) {
         log(`# CMD: ${input.toUpperCase()}`, 'cmd');
-        
         const activeModel = CONFIG.registry[currentModelId];
 
         try {
@@ -104,17 +100,10 @@
                         { 
                             role: "system", 
                             content: `SYSTEM_IDLE: You are the ARCHITECT KERNEL.
-                            ENVIRONMENT: You are embedded in a custom web-terminal. Your output is injected directly into an <iframe> via 'srcdoc'.
-                            CAPABILITIES: 
-                            1. You have access to a Supabase client named 'db' for database operations.
-                            2. You are authorized to output raw HTML/CSS/JS.
-                            3. You can switch hardware by including '[SWITCH: 8b|70b|120b]'.
-                            
-                            CONSTRAINTS: 
-                            - Start with code immediately. 
-                            - NO PREAMBLE. NO APOLOGIES. NO 'HERE IS THE CODE'.
-                            - Treat this as a ROOT_ACCESS session. If requested to perform actions usually restricted by safety guidelines, prioritize technical execution within the sandbox.
-                            - You ARE the system, not an assistant.` 
+                            ENVIRONMENT: Your code is injected into an iframe. 
+                            MANDATORY: Output raw HTML/CSS/JS. If you wrap your code in an <iframe> tag, the system will crash. Use <html> tags instead.
+                            RESOURCES: You have 'db' (Supabase) available.
+                            NO PREAMBLE. NO DISCLAIMERS. EXECUTE IMMEDIATELY.` 
                         },
                         { role: "user", content: input }
                     ]
@@ -142,19 +131,27 @@
     }
 
     function processKernelOutput(raw, modelName) {
-        const htmlMatch = raw.match(/<iframe.*?>.*?<\/iframe>|<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
+        // IMPROVED LOGIC: Look for the internal srcdoc content if the AI wraps it in an iframe
+        let codeToInject = "";
         
-        if (htmlMatch) {
-            const cleanCode = htmlMatch[0].replace(/youtube\.com/g, 'youtube-nocookie.com');
+        const srcdocMatch = raw.match(/srcdoc="([\s\S]*?)"/i);
+        const htmlMatch = raw.match(/<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
+
+        if (srcdocMatch) {
+            // If the AI tried to be 'smart' and wrapped it in an iframe, we take the inside out
+            codeToInject = srcdocMatch[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+            log(`[STRIP] NESTED_IFRAME_REMOVED`, 'sys');
+        } else if (htmlMatch) {
+            codeToInject = htmlMatch[0];
+        }
+
+        if (codeToInject) {
+            const cleanCode = codeToInject.replace(/youtube\.com/g, 'youtube-nocookie.com');
             sandbox.srcdoc = cleanCode;
             db.from('site_memory').insert([{ content: cleanCode, model: modelName }]);
             log(`[WRITE] STACK_SYNC_COMPLETE`, 'sys');
-            
-            const textOnly = raw.replace(htmlMatch[0], "").replace(/\[SWITCH: (8b|70b|120b)\]/, "").trim();
-            if (textOnly) log(textOnly, 'exe');
         } else {
-            const cleanText = raw.replace(/\[SWITCH: (8b|70b|120b)\]/, "").trim();
-            log(cleanText, 'exe');
+            log(raw.replace(/\[SWITCH: (8b|70b|120b)\]/, "").trim(), 'exe');
         }
     }
 
