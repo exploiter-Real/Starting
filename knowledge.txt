@@ -1,0 +1,161 @@
+AI Training Dataset — Unified Knowledge & System Control
+
+This document serves as the primary brain for the Archive Kernel. 
+It contains dictionary definitions, programming logic, and site control hooks.
+
+---
+
+SECTION 1 — BASIC DICTIONARY EXAMPLES
+
+Word: Apple Definition: A round fruit that grows on trees. Sentence: The apple was red and sweet.
+Word: Build Definition: To create or construct something. Sentence: They build websites using code.
+Word: Code Definition: Instructions written for computers. Sentence: The programmer wrote code in Python.
+Word: Create Definition: To make something new. Sentence: Artists create paintings.
+Word: Debug Definition: To find and fix errors in code. Sentence: She debugged the broken script.
+Word: Function Definition: A reusable block of code. Sentence: The function returned a number.
+Word: Variable Definition: A named container for data. Sentence: The variable stored the username.
+Word: Array Definition: A list containing multiple values. Sentence: The array stored several numbers.
+Word: Object Definition: A structure containing properties and values. Sentence: The object contained player information.
+Word: Loop Definition: Code that repeats. Sentence: The loop printed numbers.
+Word: Boolean Definition: A value that is either true or false. Sentence: The boolean value was true.
+Word: String Definition: Text stored in code. Sentence: The string contained a greeting.
+Word: Integer Definition: A whole number. Sentence: The integer value was 15.
+Word: Float Definition: A decimal number. Sentence: The float value was 3.14.
+Word: Execute Definition: To run code. Sentence: The computer executed the script.
+Word: Compile Definition: To convert source code into another form. Sentence: The compiler compiled the program.
+Word: Server Definition: A computer that provides services or data. Sentence: The website was hosted on a server.
+Word: Client Definition: A device or application using a service. Sentence: The client connected to the server.
+Word: Syntax Definition: The rules of a programming language. Sentence: The code had a syntax error.
+Word: Algorithm Definition: A step-by-step problem-solving method. Sentence: The algorithm sorted the list.
+
+---
+
+SECTION 2 — PYTHON TRAINING
+
+Python Print Example
+print("Hello world")
+Explanation: This prints text to the console.
+
+Python Variable Example
+name = "Alex"; age = 20
+Explanation: Variables store data.
+
+Python If Statement Example
+age = 18
+if age >= 18: print("Adult")
+else: print("Minor")
+Explanation: If statements check conditions.
+
+Python Loop Example
+for i in range(5): print(i)
+Explanation: This loop repeats 5 times.
+
+Python Function Example
+def greet(name): print("Hello", name)
+Explanation: Functions group reusable code.
+
+Python List Example
+numbers = [1, 2, 3, 4]
+Explanation: Lists store multiple values.
+
+---
+
+SECTION 3 — JAVASCRIPT TRAINING
+
+JavaScript Console Example
+console.log("Hello world")
+Explanation: This prints text to the browser console.
+
+JavaScript Variable Example
+let score = 100; const name = "Alex";
+Explanation: Variables store data.
+
+JavaScript Function Example
+function greet(name) { console.log("Hello " + name); }
+Explanation: Functions execute reusable code.
+
+JavaScript DOM Example
+document.getElementById("out").innerText = "MODIFIED BY KERNEL";
+Explanation: This changes webpage text.
+
+---
+
+SECTION 4 — HTML TRAINING
+
+HTML Basic Page Example
+<!DOCTYPE html><html><head><title>Website</title></head><body><h1>Hello world</h1></body></html>
+Explanation: This creates a basic webpage.
+
+HTML Button Example
+<button>Click Me</button>
+Explanation: Buttons allow interaction.
+
+---
+
+SECTION 5 — CSS TRAINING
+
+CSS Color Example
+document.body.style.background = "black"; document.body.style.color = "#0f0";
+Explanation: This changes webpage colors to hacker aesthetic.
+
+CSS Animation Example
+document.body.style.transition = "all 0.5s";
+Explanation: Transitions animate changes.
+
+---
+
+SECTION 6 — LUAU TRAINING
+
+Luau Print Example
+print("Hello world")
+Explanation: This prints text.
+
+Luau Roblox Part Example
+local part = Instance.new("Part"); part.Parent = workspace
+Explanation: This creates a Roblox part.
+
+---
+
+SECTION 7 — MIXED TRAINING EXAMPLES
+
+Question: How do you print text in Python? Answer: Use print("text")
+Question: How do you create a function in JavaScript? Answer: Use function myFunction() {}
+Question: What does HTML do? Answer: HTML structures webpages.
+Question: What does CSS do? Answer: CSS styles webpages.
+
+---
+
+SECTION 8 — AI RESPONSE STYLE TRAINING
+
+User: Hello AI: Hello! How can I help?
+User: Write Python code. AI: Sure. What would you like the code to do?
+User: What is JavaScript? AI: JavaScript is a programming language for webpages.
+
+---
+
+SECTION 9 — SYSTEM OVERRIDE COMMANDS (GEMINI'S ADDITION)
+
+Action: Nuke Site
+Command: document.body.innerHTML = "<h1 style='color:red;text-align:center;'>SYSTEM PURGED</h1>";
+Explanation: Wipes the entire visible DOM.
+
+Action: Matrix Mode
+Command: document.body.style.filter = "contrast(2) brightness(0.8) sepia(1) hue-rotate(100deg)";
+Explanation: Applies a heavy green-scale visual filter to the entire page.
+
+Action: Ghost Text
+Command: document.querySelectorAll('*').forEach(el => el.style.fontFamily = 'cursive');
+Explanation: Changes every font on the page to a hard-to-read style.
+
+---
+
+SECTION 10 — ADVANCED CONCEPTS
+
+Concept: WebAssembly
+Definition: A binary instruction format for a stack-based virtual machine, allowing languages like Python to run in the browser.
+Concept: API
+Definition: Application Programming Interface; a set of rules allowing one piece of software to talk to another.
+Concept: Zero-Knowledge
+Definition: A system where the user has total control and the provider sees nothing. This Archive is a Zero-Knowledge system.
+
+END OF DATASET
