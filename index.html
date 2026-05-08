@@ -22,31 +22,31 @@
     <button id="s">OOGA (CONSULT_ARCHIVE)</button>
     
     <hr>
-    <div id="out">SYSTEM_READY // NO_SAFEGUARDS_DETECTED</div>
+    <div id="out">SYSTEM_READY // USER: EXPLOITER-REAL</div>
 
     <script type="module">
         let pyodide;
         let archiveData = "";
 
-        // --- GITHUB CONFIG ---
-        // Replace with your actual GitHub username and repo name
-        const USER = "YOUR_GITHUB_USERNAME";
-        const REPO = "YOUR_REPO_NAME";
+        // --- GITHUB CONFIG CONNECTED ---
+        const USER = "exploiter-real";
+        const REPO = "Starting";
         const FILE = "knowledge.txt"; 
-        // ---------------------
+        // -------------------------------
 
         async function init() {
             try {
                 pyodide = await loadPyodide();
                 document.getElementById('status').innerText = "PYTHON_ENGINE_LOADED // FETCHING_BRAIN...";
 
+                // Fetching from your specific repo
                 const res = await fetch(`https://raw.githubusercontent.com/${USER}/${REPO}/main/${FILE}`);
-                if (!res.ok) throw new Error("File not found");
+                if (!res.ok) throw new Error("File not found on GitHub");
                 archiveData = await res.text();
 
-                document.getElementById('status').innerText = "KERNEL_ONLINE // 10_SECTIONS_LOADED";
+                document.getElementById('status').innerText = `KERNEL_ONLINE // SOURCE: ${REPO}/KNOWLEDGE.TXT`;
             } catch (e) {
-                document.getElementById('status').innerText = "ERROR: CHECK GITHUB CONFIG";
+                document.getElementById('status').innerText = "CONNECTION_ERROR: CHECK FILENAME OR REPO PRIVACY";
                 console.error(e);
             }
         }
@@ -58,7 +58,6 @@
 
             out.innerText = "SCANNING_RECORDS...";
 
-            // Match chunks of text separated by "---"
             const sections = archiveData.split('---');
             let results = [];
 
@@ -77,15 +76,13 @@
                 const winner = results[0].content;
                 out.innerText = winner;
 
-                // AUTOMATIC EXECUTION LOGIC
-                // Looks for "Command:" or "py:" tags in your txt file
                 try {
-                    // Check for JavaScript Command
+                    // JavaScript Command Execution
                     if (winner.includes("Command:")) {
                         const jsCode = winner.split("Command:")[1].split("Explanation:")[0].trim();
                         new Function(jsCode)();
                     } 
-                    // Check for Python Example
+                    // Python Logic Execution
                     else if (winner.includes("print(")) {
                         const pyCode = winner.split("Explanation:")[0].replace(/Python .* Example/g, "").trim();
                         const pyRes = await pyodide.runPythonAsync(pyCode);
