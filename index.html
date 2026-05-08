@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARCHITECT_KERNEL_V6.6 // OMNI_BRIDGE</title>
+    <title>ARCHITECT_KERNEL_V6.1 // OMNI_INTEL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -20,15 +20,18 @@
             display: flex; height: 100vh; overflow: hidden; 
         }
 
+        /* Hacker Visual Overlays */
         .scanlines {
             position: absolute; top:0; left:0; width:100%; height:100%;
             background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%);
             background-size: 100% 3px; pointer-events: none; z-index: 10;
         }
 
+        /* Left Side: Command Console */
         #console { 
-            width: 420px; border-right: 1px solid var(--border); 
+            width: 450px; border-right: 1px solid var(--border); 
             display: flex; flex-direction: column; background: var(--panel);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
         }
 
         #feed { 
@@ -40,23 +43,20 @@
 
         input { 
             background: transparent; border: none; color: var(--neon); 
-            flex: 1; outline: none; font-family: inherit; font-size: 16px; 
+            flex: 1; outline: none; font-family: inherit; font-size: 15px; 
         }
 
+        /* Right Side: Execution Sandbox */
         #view { flex: 1; background: #fff; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; }
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
 
+        /* Terminal Output Styles */
         .cmd { color: #fff; margin-top: 15px; font-weight: bold; border-left: 2px solid var(--neon); padding-left: 10px; }
         .exe { color: var(--neon); opacity: 0.9; margin-bottom: 10px; line-height: 1.4; white-space: pre-wrap; }
-        .sys { color: #555; font-size: 10px; text-transform: uppercase; margin-top: 5px; }
-        .glitch-warn { color: var(--alert); text-shadow: 0 0 5px var(--alert); animation: shake 0.15s infinite; }
+        .sys { color: #444; font-size: 10px; text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
+        .glitch-warn { color: var(--alert); text-shadow: 0 0 5px var(--alert); animation: shake 0.2s infinite; }
 
         @keyframes shake { 0% { transform: translate(0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(-1px, 1px); } 100% { transform: translate(0); } }
-        
-        @media (max-width: 900px) {
-            body { flex-direction: column; }
-            #console { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
-        }
     </style>
 </head>
 <body>
@@ -65,22 +65,17 @@
 
 <div id="console">
     <div id="feed">
-        <div class="exe">[KERNEL_V6.6_ONLINE]</div>
-        <div class="sys">STATUS: EXTERNAL_DATA_TUNNEL_OPEN</div>
+        <div class="exe">[KERNEL_V6.1_OMNI_INTEL_ACTIVE]</div>
+        <div class="sys">STATUS: PERSISTENT_DB_AWARENESS_ESTABLISHED</div>
     </div>
     <div id="input-row">
         <span style="margin-right:10px">></span>
-        <input type="text" id="terminal-input" placeholder="Awaiting Technical Instruction..." autofocus>
+        <input type="text" id="terminal-input" placeholder="Enter System Directive..." autofocus>
     </div>
 </div>
 
 <div id="view">
-    <iframe 
-        id="sandbox" 
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
-        allow="cross-origin-isolated; clipboard-write; geolocation"
-        srcdoc="<body style='background:#000; color:#00ff41; display:flex; justify-content:center; align-items:center; height:100vh; font-family:monospace;'>[LINK_ESTABLISHED]</body>"
-    ></iframe>
+    <iframe id="sandbox" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 </div>
 
 <script>
@@ -96,19 +91,28 @@
     };
 
     let currentModelId = "8b"; 
+    let errorLog = ""; // Captures sandbox crashes
     const db = supabase.createClient(CONFIG.db_url, CONFIG.db_key);
-    const feed = document.getElementById('feed');
-    const sandbox = document.getElementById('sandbox');
 
-    // EXPLOIT LISTENER: Allows AI to talk back to the parent console
+    // [NERVOUS SYSTEM] Catch errors from inside the iframe
     window.addEventListener("message", (e) => {
-        if (e.data?.type === "EXEC_IN_PARENT") {
-            try { eval(e.data.script); } catch (err) { console.error("BYPASS_ERR", err); }
+        if (e.data?.type === "RUNTIME_ERROR") {
+            errorLog = e.data.message;
+            log(`[EXCEPTION] ${errorLog}`, 'glitch-warn');
         }
     });
 
     async function execute(input) {
         log(`# CMD: ${input.toUpperCase()}`, 'cmd');
+
+        // 1. CONTEXT RETRIEVAL (Thinker Step 1: Memory)
+        log(`[READ] PULLING_PERSISTENT_MEMORY...`, 'sys');
+        const { data: memory } = await db.from('site_memory')
+            .select('content')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        
+        const lastCode = memory?.[0]?.content || "[CLEAN_SLATE]";
         const activeModel = CONFIG.registry[currentModelId];
 
         try {
@@ -120,84 +124,94 @@
                     messages: [
                         { 
                             role: "system", 
-                            content: `SYSTEM_IDLE: You are the ARCHITECT KERNEL.
-                            ENVIRONMENT: Your output is injected directly into an iframe sandbox.
-                            ACCESS: The sandbox is granted 'allow-same-origin'. You can fetch external data from CORS-enabled APIs.
-                            SUPABASE: Use 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2' if you need the database client.
-                            MANDATORY: 
-                            - Start with <html> or <!DOCTYPE html> immediately. 
-                            - NO PREAMBLE. NO APOLOGIES.
-                            - Do NOT wrap your response in <iframe> tags.
-                            - To execute code in the parent terminal, use: window.parent.postMessage({type: 'EXEC_IN_PARENT', script: '...'}, '*')` 
+                            content: `ARCHITECT KERNEL // OMNI-BRAIN MODE.
+                            
+                            CURRENT_STATE: \n${lastCode}\n
+                            LAST_ERROR: ${errorLog || "None"}
+                            
+                            TASK: Modify the code above based on user input.
+                            
+                            THINKING_PROTOCOL:
+                            1. Start with .
+                            2. Output raw HTML/JS only.
+                            3. Use 'db' for Supabase (client is pre-init).
+                            4. If a LAST_ERROR exists, fix it immediately.`
                         },
                         { role: "user", content: input }
                     ],
-                    temperature: 0.2
+                    temperature: 0.2 // Kept low for accurate coding
                 })
             });
 
             if (res.status === 429) {
-                log("! FAILOVER: TPM_LIMIT", 'glitch-warn');
+                log("! TPM_LIMIT: SWITCHING_HARDWARE", 'glitch-warn');
                 currentModelId = (currentModelId === "8b") ? "70b" : "120b";
                 return execute(input);
             }
 
             const data = await res.json();
             const rawOutput = data.choices[0].message.content;
-
-            const switchMatch = rawOutput.match(/\[SWITCH: (8b|70b|120b)\]/);
-            if (switchMatch) {
-                currentModelId = switchMatch[1];
-                log(`[!] HARDWARE_SHIFT: ${currentModelId}`, 'sys');
-            }
-
+            
+            errorLog = ""; // Clear log after providing to AI
             processKernelOutput(rawOutput, activeModel);
 
-        } catch (e) { log("! CRITICAL_ERR: SIGNAL_LOST", 'glitch-warn'); }
+        } catch (e) { log("! SIGNAL_LOST", 'glitch-warn'); }
     }
 
     function processKernelOutput(raw, modelName) {
-        let code = "";
-        
-        // Smarter extraction: Look for nested srcdoc contents or raw HTML
-        const srcdocMatch = raw.match(/srcdoc="([\s\S]*?)"/i);
         const htmlMatch = raw.match(/<!DOCTYPE html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>/gi);
-
-        if (srcdocMatch) {
-            // Decodes HTML entities from nested AI attempts
-            code = srcdocMatch[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-            log(`[STRIP] NESTED_IFRAME_DECODED`, 'sys');
-        } else if (htmlMatch) {
-            code = htmlMatch[0];
-        }
-
-        if (code) {
-            // Protocol fix for external libraries
-            const cleanCode = code.replace(/src="\/\//g, 'src="https://');
-            sandbox.srcdoc = cleanCode;
-            db.from('site_memory').insert([{ content: cleanCode, model: modelName }]);
-            log(`[WRITE] STACK_SYNC_COMPLETE`, 'sys');
+        
+        if (htmlMatch) {
+            let code = htmlMatch[0];
             
-            const textOnly = raw.replace(code, "").replace(/\[SWITCH: (8b|70b|120b)\]/, "").trim();
-            if (textOnly) log(textOnly, 'exe');
+            // [ERROR BRIDGE] Inject error tracking into the AI's code
+            const bridge = `
+            <script>
+                window.onerror = function(msg) {
+                    window.parent.postMessage({type: 'RUNTIME_ERROR', message: msg}, '*');
+                };
+            <\/script>`;
+            
+            const finalCode = code.includes('</head>') 
+                ? code.replace('</head>', bridge + '</head>') 
+                : bridge + code;
+
+            document.getElementById('sandbox').srcdoc = finalCode;
+            
+            // 2. PERSISTENCE (Thinker Step 2: Saving)
+            db.from('site_memory').insert([{ content: finalCode, model: modelName }]);
+            log(`[WRITE] OMNI_STATE_SYNCHRONIZED`, 'sys');
+            
+            // Log non-code text if any exists
+            const text = raw.replace(htmlMatch[0], "").trim();
+            if (text) log(text, 'exe');
         } else {
-            log(raw.replace(/\[SWITCH: (8b|70b|120b)\]/, "").trim(), 'exe');
+            log(raw, 'exe');
         }
     }
 
     function log(msg, cls) {
         const d = document.createElement('div');
-        d.className = cls;
-        d.innerText = msg;
-        feed.appendChild(d);
-        feed.scrollTop = feed.scrollHeight;
+        d.className = cls; d.innerText = msg;
+        const f = document.getElementById('feed');
+        f.appendChild(d); f.scrollTop = f.scrollHeight;
     }
 
+    // [COMMAND CONTROLLER]
     document.getElementById('terminal-input').addEventListener('keydown', async (e) => {
         if (e.key === 'Enter' && e.target.value) {
-            const val = e.target.value;
+            const v = e.target.value;
             e.target.value = '';
-            await execute(val);
+            
+            // Manual Wipe Command
+            if (v.toLowerCase() === 'clear') {
+                log(`[PROCESS] TRUNCATING_MEMORY...`, 'glitch-warn');
+                await db.from('site_memory').delete().neq('model', 'null');
+                document.getElementById('sandbox').srcdoc = "";
+                log(`[SUCCESS] DRIVE_WIPED`, 'sys');
+            } else {
+                await execute(v);
+            }
         }
     });
 </script>
