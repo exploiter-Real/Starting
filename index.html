@@ -65,15 +65,24 @@
             // (11) Oscillating HUD
             document.getElementById('meta-val').innerText = (1 + (this.xp / 100)).toFixed(2);
 
+            // FIX: OLD LADY SYNDROME FILTER
+            // This ensures the AI doesn't pull lines that are clearly instructions or examples
+            const blacklist = ["example", "not to do", "non example", "behavior", "word:", "antonym", "synonym"];
+
             // (3) Cross-Reference Synthesis & (7) Semantic Hash Mapping
-            let matches = this.memory.filter(line => 
-                input.toLowerCase().split(' ').some(w => w.length > 2 && line.toLowerCase().includes(w))
-            );
+            let matches = this.memory.filter(line => {
+                const cleanLine = line.toLowerCase();
+                const hasKeyword = input.toLowerCase().split(' ').some(w => w.length > 2 && cleanLine.includes(w));
+                const isForbidden = blacklist.some(term => cleanLine.includes(term));
+                return hasKeyword && !isForbidden;
+            });
 
             // (5) Deductive Fallback
             if (matches.length === 0) {
                 log("PRIMARY_MATCH_NULL. INITIATING_DEDUCTIVE_FALLBACK...", "thought");
-                matches = this.memory.filter(line => line.length > 10).slice(0, 1);
+                matches = this.memory.filter(line => 
+                    line.length > 10 && !blacklist.some(t => line.toLowerCase().includes(t))
+                ).slice(0, 1);
             }
 
             // (16) Dynamic XP Leveling
@@ -125,7 +134,9 @@
         // (13) Temporal Initialization
         setInterval(() => {
             const n = new Date();
-            document.getElementById('clk').innerText = `${n.getHours()}:${n.getMinutes()}`;
+            const h = n.getHours().toString().padStart(2, '0');
+            const m = n.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clk').innerText = `${h}:${m}`;
         }, 1000);
 
         try {
