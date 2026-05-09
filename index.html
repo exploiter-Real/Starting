@@ -16,6 +16,7 @@
         .thought { color: #0088ff; font-style: italic; font-size: 0.85em; }
         .system { color: #ffcc00; font-weight: bold; }
         .glitch { color: #00ff41; }
+        .error { color: #ff4141; }
     </style>
 </head>
 <body>
@@ -36,13 +37,14 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-        // DATABASE_CONFIGURATION
+        // DB_CONFIG
         const SUPABASE_URL = 'https://bbvjxjmqnpsfdrlfuppp.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // KNOWLEDGE_SOURCE
-        const RAW_KNOWLEDGE_URL = "https://corsproxy.io/?https://raw.githubusercontent.com/exploiter-Real/Starting/refs/heads/main/knowledge.txt";
+        // UPDATED_PROXY_URL
+        const RAW_URL = "https://raw.githubusercontent.com/exploiter-Real/Starting/refs/heads/main/knowledge.txt";
+        const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(RAW_URL)}`;
 
         let extractor;
         const consoleEl = document.getElementById('console');
@@ -60,12 +62,12 @@
 
         async function init() {
             try {
-                log("LOADING_NEURAL_WEIGHTS...", "thought");
+                log("LOADING_NEURAL_WEIGHTS (Local Browser Cache)...", "thought");
                 extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("NEURAL_CORE_ONLINE. READY_FOR_LOGIC_STREAMS.", "system");
+                log("NEURAL_CORE_ONLINE. READY.", "system");
                 btnEl.disabled = false;
             } catch (err) {
-                log("CORE_FATAL_ERROR: " + err.message);
+                log("CORE_ERROR: " + err.message, "error");
             }
         }
 
@@ -78,11 +80,10 @@
             btnEl.disabled = true;
 
             try {
-                log("CONVERTING_TO_VECTOR_COORDINATES...", "thought");
+                log("CALCULATING_SEMANTIC_VECTOR...", "thought");
                 const output = await extractor(query, { pooling: 'mean', normalize: true });
                 const embedding = Array.from(output.data);
 
-                log("SCANNING_SUPABASE_MEMORY...", "thought");
                 const { data, error } = await supabase.rpc('match_knowledge', {
                     query_embedding: embedding,
                     match_threshold: 0.25,
@@ -93,12 +94,12 @@
 
                 if (data && data.length > 0) {
                     log(`<span class="glitch">GLITCH:</span> ${data[0].content}`);
-                    log(`[SIMILARITY_SCORE: ${(data[0].similarity * 100).toFixed(1)}%]`, "thought");
+                    log(`[NEURAL_MATCH: ${(data[0].similarity * 100).toFixed(1)}%]`, "thought");
                 } else {
-                    log("SYSTEM_IDLE: NO_SIMILAR_NODES_FOUND.");
+                    log("SYSTEM: NO_LOGIC_MATCH_FOUND. SYNC_REQUIRED?");
                 }
             } catch (err) {
-                log("NEURAL_ERROR: " + err.message);
+                log("INFERENCE_ERROR: " + err.message, "error");
             } finally {
                 btnEl.disabled = false;
             }
@@ -106,29 +107,37 @@
 
         syncBtn.addEventListener('click', async () => {
             syncBtn.disabled = true;
-            log("INITIATING_CLOUD_SYNC_FROM_GITHUB...", "system");
+            log("FETCHING_KNOWLEDGE_FROM_GITHUB...", "system");
 
             try {
-                const res = await fetch(RAW_KNOWLEDGE_URL);
-                if (!res.ok) throw new Error("Could not fetch knowledge.txt");
+                const res = await fetch(PROXY_URL);
+                if (!res.ok) throw new Error("CORS_BLOCK_OR_NETWORK_FAILURE");
                 
                 const text = await res.text();
-                // Filter out empty lines and very short noise
-                const chunks = text.split('\n').filter(l => l.trim().length > 3);
+                // Split by line and filter junk
+                const lines = text.split('\n').filter(l => l.trim().length > 3);
                 
-                log(`PARSING_${chunks.length}_NEURAL_OBJECTS...`);
+                log(`NEURALIZING_${lines.length}_LOGIC_NODES...`, "thought");
 
-                for (let chunk of chunks) {
-                    const output = await extractor(chunk, { pooling: 'mean', normalize: true });
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    const output = await extractor(line, { pooling: 'mean', normalize: true });
+                    
                     const { error } = await supabase.from('neural_knowledge').insert({
-                        content: chunk.trim(),
+                        content: line,
                         embedding: Array.from(output.data)
                     });
-                    if (error) console.error("CHUNK_SYNC_ERROR:", error);
+
+                    if (error) console.error("DB_ERR:", error);
+                    
+                    // Show progress every 10 lines so mobile users don't think it's crashed
+                    if (i % 10 === 0) log(`PROGRESS: ${Math.round((i/lines.length)*100)}%`, "thought");
                 }
-                log("SYNCHRONIZATION_COMPLETE. BRAIN_READY.", "system");
+                
+                log("SYNCHRONIZATION_SUCCESSFUL. GLITCH_BRAIN_ACTIVATED.", "system");
             } catch (err) {
-                log("SYNC_FAILURE: " + err.message);
+                log("CRITICAL_SYNC_FAILURE: " + err.message, "error");
+                log("TRY_MANUAL_COPY_IF_STUCK.", "thought");
             } finally {
                 syncBtn.disabled = false;
             }
