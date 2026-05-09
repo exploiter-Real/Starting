@@ -6,28 +6,28 @@
     <title>KERNEL_V33_SINGULARITY</title>
     <style>
         body { background: #050505; color: #00ff41; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #console { width: 90%; max-width: 800px; height: 50vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 15px; border-radius: 4px; }
-        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; flex-wrap: wrap; }
-        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; outline: none; min-width: 200px; }
-        .btns { display: flex; gap: 5px; width: 100%; }
-        button { flex: 1; background: #00ff41; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; }
+        #console { width: 90%; max-width: 800px; height: 40vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 10px; }
+        #bulkInput { width: 90%; max-width: 800px; height: 100px; background: #111; border: 1px dashed #00ff41; color: #00ff41; padding: 10px; margin-bottom: 10px; font-size: 12px; outline: none; }
+        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; margin-bottom: 10px; }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 15px; cursor: pointer; font-weight: bold; font-size: 11px; }
         button:disabled { background: #004411; }
+        #uploadBtn { background: #00ccff; }
         .sys { color: #888; }
-        .err { color: #ff4444; }
     </style>
 </head>
 <body>
 
     <div id="console">
-        <div class="sys">[SYSTEM]: OS_BOOT_COMPLETE...</div>
+        <div class="sys">[SYSTEM]: TERMINAL_ACTIVE...</div>
     </div>
 
+    <textarea id="bulkInput" placeholder="PASTE_KNOWLEDGE_TEXT_HERE (No formatting needed)"></textarea>
+
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Awaiting Input..." autocomplete="off">
-        <div class="btns">
-            <button id="sendBtn" disabled>SEND</button>
-            <button id="syncBtn">SYNC</button>
-        </div>
+        <input type="text" id="userInput" placeholder="Ask anything..." autocomplete="off">
+        <button id="sendBtn" disabled>SEND</button>
+        <button id="uploadBtn">UPLOAD_TO_SUPABASE</button>
     </div>
 
     <script type="module">
@@ -38,19 +38,15 @@
         const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Using the Raw URL but adding a bypass for CORS via proxy
-        const RAW_URL = "https://raw.githubusercontent.com/exploiter-Real/Starting/main/knowledge.txt";
-        const PROXY_URL = "https://api.allorigins.win/raw?url=" + encodeURIComponent(RAW_URL);
-
         let extractor;
         const consoleEl = document.getElementById('console');
+        const bulkEl = document.getElementById('bulkInput');
         const inputEl = document.getElementById('userInput');
         const btnEl = document.getElementById('sendBtn');
-        const syncBtn = document.getElementById('syncBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
 
-        function log(msg, isErr = false) {
+        function log(msg) {
             const div = document.createElement('div');
-            if (isErr) div.className = 'err';
             div.textContent = `> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
@@ -59,45 +55,48 @@
         async function init() {
             try {
                 extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("NEURAL_ENGINE_ONLINE");
+                log("NEURAL_ENGINE_READY");
                 btnEl.disabled = false;
             } catch (err) {
-                log("INIT_ERROR: " + err.message, true);
+                log("INIT_ERR: " + err.message);
             }
         }
 
-        syncBtn.addEventListener('click', async () => {
-            syncBtn.disabled = true;
-            log("ATTEMPTING_SYNC...");
+        uploadBtn.addEventListener('click', async () => {
+            const rawText = bulkEl.value.trim();
+            if (!rawText) return log("INPUT_EMPTY");
+
+            uploadBtn.disabled = true;
+            log("PARSING_TEXT_FILE...");
 
             try {
-                // Fetching via proxy to bypass GitHub's CORS protection on mobile
-                const res = await fetch(PROXY_URL);
-                if (!res.ok) throw new Error("NETWORK_RESPONSE_NOT_OK");
-                
-                const text = await res.text();
-                if (text.includes("<!DOCTYPE html>")) throw new Error("INVALID_DATA_FORMAT");
+                // Splits by any line that has significant text
+                const lines = rawText.split('\n').filter(l => l.trim().length > 5);
+                log(`INJECTING_${lines.length}_NODES_TO_DATABASE...`);
 
-                const sections = text.split(/\n\n|---/).filter(s => s.trim().length > 5);
-                log(`PARSING_${sections.length}_LOGIC_NODES`);
-
-                for (let i = 0; i < sections.length; i++) {
-                    const section = sections[i].trim();
-                    const output = await extractor(section, { pooling: 'mean', normalize: true });
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
                     
+                    // 1. Generate Math Embedding (Vector)
+                    const output = await extractor(line, { pooling: 'mean', normalize: true });
+                    const embedding = Array.from(output.data);
+
+                    // 2. Direct Upload to Supabase
                     const { error } = await supabase.from('neural_knowledge').insert({
-                        content: section,
-                        embedding: Array.from(output.data)
+                        content: line,
+                        embedding: embedding
                     });
-                    
-                    if (error) console.error(error);
-                    if (i % 5 === 0) log(`SYNC_PROGRESS: ${Math.round((i/sections.length)*100)}%`);
+
+                    if (error) console.error("UPLOAD_ERR:", error);
+                    if (i % 5 === 0) log(`PROGRESS: ${Math.round((i/lines.length)*100)}%`);
                 }
-                log("SYNC_SUCCESSFUL");
+                
+                log("UPLOAD_COMPLETE: DATABASE_SYNCED");
+                bulkEl.value = ""; // Clear box after success
             } catch (err) {
-                log("SYNC_FATAL: " + err.message, true);
+                log("FATAL_ERROR: " + err.message);
             } finally {
-                syncBtn.disabled = false;
+                uploadBtn.disabled = false;
             }
         });
 
@@ -113,18 +112,15 @@
 
                 const { data, error } = await supabase.rpc('match_knowledge', {
                     query_embedding: embedding,
-                    match_threshold: 0.2,
+                    match_threshold: 0.1, // Adjusted for broader matching
                     match_count: 1
                 });
 
                 if (error) throw error;
-                if (data && data.length > 0) {
-                    log(`AI: ${data[0].content}`);
-                } else {
-                    log("AI: NO_MATCH_IN_MEMORY");
-                }
+                if (data && data.length > 0) log(`AI: ${data[0].content}`);
+                else log("AI: NO_MATCH_FOUND");
             } catch (err) {
-                log("QUERY_ERROR: " + err.message, true);
+                log("ERR: " + err.message);
             }
         }
 
