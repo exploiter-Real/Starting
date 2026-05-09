@@ -2,6 +2,7 @@ AI Training Dataset — Unified Knowledge & System Control
 
 This document serves as the primary brain for the Archive Kernel. 
 It contains dictionary definitions, programming logic, and site control hooks.
+English language examples down below 👇 
 
 ---
 
@@ -27,7 +28,12 @@ Word: Server Definition: A computer that provides services or data. Sentence: Th
 Word: Client Definition: A device or application using a service. Sentence: The client connected to the server.
 Word: Syntax Definition: The rules of a programming language. Sentence: The code had a syntax error.
 Word: Algorithm Definition: A step-by-step problem-solving method. Sentence: The algorithm sorted the list.
+Word: Hello 
+      Synonym's: Welcome, Greetings, Hi
+      Antonyms:  Bye, Good riddance, Good luck out there.
+      Examples: He said hello to the old lady.
 
+                      ☝️ 
 ---
 
 SECTION 2 — PYTHON TRAINING
@@ -130,6 +136,8 @@ SECTION 8 — AI RESPONSE STYLE TRAINING
 User: Hello AI: Hello! How can I help?
 User: Write Python code. AI: Sure. What would you like the code to do?
 User: What is JavaScript? AI: JavaScript is a programming language for webpages.
+User: Hello.  |  A.I: Hello, how can i help you? 
+User: Good riddance | A. I: That's a feeling of frustration, anything i can do to help remove it?
 
 ---
 
