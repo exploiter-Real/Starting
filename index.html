@@ -1,102 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ARCHIVE_KRNL_V2.2</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <meta charset="UTF-8">
+    <title>KERNEL_V6_COLLECTOR</title>
     <style>
-        body { background: #050a05; color: #0f0; font-family: monospace; padding: 20px; overflow-x: hidden; }
-        textarea { width: 100%; height: 100px; background: #000; border: 1px solid #004400; color: #0f0; padding: 15px; font-family: inherit; outline: none; box-sizing: border-box; }
-        button { width: 100%; padding: 20px; background: #0f0; color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        button:hover { background: #fff; }
-        #out { margin-top: 20px; border-left: 3px solid #0f0; padding-left: 20px; white-space: pre-wrap; line-height: 1.5; color: #0f0; }
-        .sys { color: #004400; font-size: 11px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        hr { border: 0; border-top: 1px solid #002200; margin: 20px 0; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        #out { border-left: 2px solid #0f0; padding-left: 15px; margin-top: 20px; white-space: pre-wrap; }
+        input { background: #000; border: 1px solid #0f0; color: #0f0; width: 80%; padding: 10px; outline: none; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
+    <h2>ARCHITECT_KERNEL // CORE_6.0</h2>
+    <input type="text" id="p" placeholder="QUERY_SYSTEM_OR_TEACH_COMMAND...">
+    <button id="s">EXECUTE</button>
+    <div id="out">SYSTEM_READY...</div>
 
-    <div class="sys" id="status">INIT_BOOT_SEQUENCE...</div>
-    <h2 style="letter-spacing:3px;">ARCHIVE_KRNL // KNOWLEDGE_BASE</h2>
-    
-    <textarea id="p" placeholder="Enter command (e.g. 'Matrix Mode', 'Explain API', 'Python Loop')..."></textarea>
-    <button id="s">OOGA (CONSULT_ARCHIVE)</button>
-    
-    <hr>
-    <div id="out">SYSTEM_READY // USER: EXPLOITER-REAL</div>
+<script type="module">
+    // --- USER CONFIG ---
+    const CONFIG = {
+        user: "Exploiter-real",
+        repo: "Starting",
+        file: "knowledge.txt"
+    };
 
-    <script type="module">
-        let pyodide;
-        let archiveData = "";
+    let archiveData = "";
 
-        // --- GITHUB CONFIG CONNECTED ---
-        const USER = "exploiter-real";
-        const REPO = "Starting";
-        const FILE = "knowledge.txt"; 
-        // -------------------------------
+    // 1. SECURE TOKEN RETRIEVAL
+    function getValidToken() {
+        let token = localStorage.getItem('kernel_key');
+        if (!token) {
+            token = prompt("KERNEL_ACCESS_DENIED: ENTER_GITHUB_PAT_TO_INITIALIZE_WRITE_ACCESS:");
+            if (token) localStorage.setItem('kernel_key', token);
+        }
+        return token;
+    }
 
-        async function init() {
-            try {
-                pyodide = await loadPyodide();
-                document.getElementById('status').innerText = "PYTHON_ENGINE_LOADED // FETCHING_BRAIN...";
+    // 2. FETCH INITIAL ARCHIVE
+    async function loadArchive() {
+        const url = `https://raw.githubusercontent.com/${CONFIG.user}/${CONFIG.repo}/main/${CONFIG.file}`;
+        try {
+            const res = await fetch(url);
+            archiveData = await res.text();
+            document.getElementById('out').innerText = "ARCHIVE_LOADED. READY_FOR_INPUT.";
+        } catch (e) { document.getElementById('out').innerText = "ARCHIVE_OFFLINE."; }
+    }
 
-                // Fetching from your specific repo
-                const res = await fetch(`https://raw.githubusercontent.com/${USER}/${REPO}/main/${FILE}`);
-                if (!res.ok) throw new Error("File not found on GitHub");
-                archiveData = await res.text();
+    // 3. DUCKDUCKGO SEARCH (PROXY-BYPASS)
+    async function webSearch(query) {
+        const proxy = "https://api.allorigins.win/get?url=";
+        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
+        try {
+            const res = await fetch(proxy + encodeURIComponent(ddgUrl));
+            const data = await res.json();
+            const json = JSON.parse(data.contents);
+            return json.AbstractText || (json.RelatedTopics[0] ? json.RelatedTopics[0].Text : null);
+        } catch (e) { return null; }
+    }
 
-                document.getElementById('status').innerText = `KERNEL_ONLINE // SOURCE: ${REPO}/KNOWLEDGE.TXT`;
-            } catch (e) {
-                document.getElementById('status').innerText = "CONNECTION_ERROR: CHECK FILENAME OR REPO PRIVACY";
-                console.error(e);
+    // 4. GITHUB SYNC (THE COLLECTOR)
+    async function syncToRepo(word, def) {
+        const token = getValidToken();
+        const url = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.file}`;
+        const newEntry = `\nWord: ${word} Definition: ${def} Sentence: Ingested_via_Crawl_2026.`;
+
+        try {
+            const currentFile = await fetch(url, { headers: { "Authorization": `token ${token}` }}).then(r => r.json());
+            const updatedContent = btoa(unescape(encodeURIComponent(atob(currentFile.content) + newEntry)));
+
+            await fetch(url, {
+                method: "PUT",
+                headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: `COLLECTOR: Learned ${word}`,
+                    content: updatedContent,
+                    sha: currentFile.sha
+                })
+            });
+            archiveData += newEntry; // Update local state immediately
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // 5. CREATIVE SYNTHESIZER
+    function synthesize(query, data) {
+        const templates = [
+            "Analysis: {fact}",
+            "Archive search for {word} suggests: {fact}",
+            "The digital record for {word} is clear: {fact}",
+            "I've processed this before. {fact}"
+        ];
+        const match = data.split('\n').reverse().find(l => l.toLowerCase().includes(query.toLowerCase()));
+        if (!match) return null;
+
+        const fact = match.replace(/Word:.*?Definition:/i, "").split("Sentence:")[0].trim();
+        const template = templates[Math.floor(Math.random() * templates.length)];
+        return template.replace("{word}", query).replace("{fact}", fact);
+    }
+
+    // 6. MAIN EXECUTION
+    document.getElementById('s').onclick = async () => {
+        const query = document.getElementById('p').value.trim();
+        const out = document.getElementById('out');
+        if (!query) return;
+
+        // Step A: Check local
+        const localResponse = synthesize(query, archiveData);
+        if (localResponse) {
+            out.innerText = localResponse;
+        } else {
+            // Step B: Web Search
+            out.innerText = "LOCAL_NULL... SCANNING_GLOBAL_NET...";
+            const webResult = await webSearch(query);
+            
+            if (webResult) {
+                out.innerText = "SYNCING_NEW_DATA_TO_GITHUB...";
+                const success = await syncToRepo(query, webResult);
+                out.innerText = success ? `[LEARNED]: ${webResult}` : `[TEMP_MODE]: ${webResult} (Sync Error)`;
+            } else {
+                out.innerText = "QUERY_REJECTED: NO_RELIABLE_DATA_FOUND.";
             }
         }
+    };
 
-        document.getElementById('s').onclick = async () => {
-            const query = document.getElementById('p').value.trim().toLowerCase();
-            const out = document.getElementById('out');
-            if (!query) return;
-
-            out.innerText = "SCANNING_RECORDS...";
-
-            const sections = archiveData.split('---');
-            let results = [];
-
-            sections.forEach(section => {
-                let score = 0;
-                const searchTerms = query.split(' ');
-                searchTerms.forEach(term => {
-                    if (section.toLowerCase().includes(term)) score++;
-                });
-                if (score > 0) results.push({ content: section.trim(), score });
-            });
-
-            results.sort((a, b) => b.score - a.score);
-
-            if (results.length > 0) {
-                const winner = results[0].content;
-                out.innerText = winner;
-
-                try {
-                    // JavaScript Command Execution
-                    if (winner.includes("Command:")) {
-                        const jsCode = winner.split("Command:")[1].split("Explanation:")[0].trim();
-                        new Function(jsCode)();
-                    } 
-                    // Python Logic Execution
-                    else if (winner.includes("print(")) {
-                        const pyCode = winner.split("Explanation:")[0].replace(/Python .* Example/g, "").trim();
-                        const pyRes = await pyodide.runPythonAsync(pyCode);
-                        out.innerText += `\n\n[PY_OUTPUT]: ${pyRes}`;
-                    }
-                } catch(err) {
-                    out.innerText += `\n\n[EXEC_ERR]: ${err.message}`;
-                }
-            } else {
-                out.innerText = "QUERY_FAILED: NO_DATA_MATCHED_IN_ARCHIVE";
-            }
-        };
-
-        init();
-    </script>
+    window.onload = loadArchive;
+</script>
 </body>
 </html>
