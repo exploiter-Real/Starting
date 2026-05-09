@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KERNEL_V33_SINGULARITY | Persistent Sync</title>
+    <title>KERNEL_V33_SINGULARITY</title>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #console { width: 90%; max-width: 800px; height: 50vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: rgba(0, 10, 0, 0.95); box-shadow: 0 0 10px #00ff41; margin-bottom: 15px; font-size: 14px; }
-        .input-area { display: flex; width: 90%; max-width: 800px; gap: 8px; flex-wrap: wrap; }
+        body { background: #050505; color: #00ff41; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #console { width: 90%; max-width: 800px; height: 50vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 15px; border-radius: 4px; }
+        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; flex-wrap: wrap; }
         input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; outline: none; min-width: 200px; }
         .btns { display: flex; gap: 5px; width: 100%; }
-        button { flex: 1; background: #00ff41; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; font-size: 12px; }
-        button:disabled { background: #004411; color: #002200; }
-        #syncBtn { background: #00ccff; }
-        #clearBtn { background: #ff4141; max-width: 100px; }
-        .thought { color: #0088ff; font-style: italic; font-size: 0.85em; }
-        .system { color: #ffcc00; font-weight: bold; }
-        .glitch { color: #00ff41; }
+        button { flex: 1; background: #00ff41; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #004411; }
+        .sys { color: #888; }
+        .err { color: #ff4444; }
     </style>
 </head>
 <body>
 
     <div id="console">
-        <div class="system">[BOOT_SEQUENCE]: INITIALIZING_GLITCH_OS...</div>
+        <div class="sys">[SYSTEM]: OS_BOOT_COMPLETE...</div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="TYPE_MESSAGE_HERE..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="Awaiting Input..." autocomplete="off">
         <div class="btns">
-            <button id="sendBtn" disabled>ENGAGE</button>
-            <button id="syncBtn">SYNC_CORE</button>
-            <button id="clearBtn" title="Clear Token">CLR</button>
+            <button id="sendBtn" disabled>SEND</button>
+            <button id="syncBtn">SYNC</button>
         </div>
     </div>
 
@@ -42,100 +38,77 @@
         const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const RAW_URL = "https://raw.githubusercontent.com/exploiter-Real/Starting/refs/heads/main/knowledge.txt";
+        // Using the Raw URL but adding a bypass for CORS via proxy
+        const RAW_URL = "https://raw.githubusercontent.com/exploiter-Real/Starting/main/knowledge.txt";
+        const PROXY_URL = "https://api.allorigins.win/raw?url=" + encodeURIComponent(RAW_URL);
 
         let extractor;
         const consoleEl = document.getElementById('console');
         const inputEl = document.getElementById('userInput');
         const btnEl = document.getElementById('sendBtn');
         const syncBtn = document.getElementById('syncBtn');
-        const clearBtn = document.getElementById('clearBtn');
 
-        function log(msg, type = '') {
+        function log(msg, isErr = false) {
             const div = document.createElement('div');
-            if (type) div.classList.add(type);
-            div.innerHTML = `> ${msg}`;
+            if (isErr) div.className = 'err';
+            div.textContent = `> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
         async function init() {
             try {
-                log("LOADING_NEURAL_WEIGHTS...", "thought");
                 extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("NEURAL_CORE_ONLINE. PERSISTENT_AUTH_ENABLED.", "system");
+                log("NEURAL_ENGINE_ONLINE");
                 btnEl.disabled = false;
             } catch (err) {
-                log("CORE_ERROR: " + err.message);
+                log("INIT_ERROR: " + err.message, true);
             }
         }
 
         syncBtn.addEventListener('click', async () => {
-            // Check LocalStorage first
-            let pat = localStorage.getItem('gh_token');
-            
-            if (!pat) {
-                pat = prompt("NO_TOKEN_FOUND. ENTER_GITHUB_PAT:");
-                if (pat) localStorage.setItem('gh_token', pat);
-                else return;
-            }
-
             syncBtn.disabled = true;
-            log("INITIATING_SECURE_FETCH (Using Cached Token)...", "system");
+            log("ATTEMPTING_SYNC...");
 
             try {
-                const res = await fetch(RAW_URL, {
-                    headers: { 'Authorization': `token ${pat}` }
-                });
-
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        localStorage.removeItem('gh_token');
-                        throw new Error("INVALID_TOKEN. CLEARING_CACHE.");
-                    }
-                    throw new Error(`HTTP_${res.status}: FETCH_FAILED`);
-                }
+                // Fetching via proxy to bypass GitHub's CORS protection on mobile
+                const res = await fetch(PROXY_URL);
+                if (!res.ok) throw new Error("NETWORK_RESPONSE_NOT_OK");
                 
                 const text = await res.text();
-                // Split by double line breaks or section markers
-                const chunks = text.split(/\n\n|---/).filter(l => l.trim().length > 5);
-                
-                log(`SYNC_ACTIVE: PROCESSING_${chunks.length}_SECTIONS...`);
+                if (text.includes("<!DOCTYPE html>")) throw new Error("INVALID_DATA_FORMAT");
 
-                for (let i = 0; i < chunks.length; i++) {
-                    const chunk = chunks[i].trim();
-                    const output = await extractor(chunk, { pooling: 'mean', normalize: true });
+                const sections = text.split(/\n\n|---/).filter(s => s.trim().length > 5);
+                log(`PARSING_${sections.length}_LOGIC_NODES`);
+
+                for (let i = 0; i < sections.length; i++) {
+                    const section = sections[i].trim();
+                    const output = await extractor(section, { pooling: 'mean', normalize: true });
                     
-                    await supabase.from('neural_knowledge').insert({
-                        content: chunk,
+                    const { error } = await supabase.from('neural_knowledge').insert({
+                        content: section,
                         embedding: Array.from(output.data)
                     });
-
-                    if (i % 5 === 0) log(`ENCODING: ${Math.round((i/chunks.length)*100)}%`, "thought");
+                    
+                    if (error) console.error(error);
+                    if (i % 5 === 0) log(`SYNC_PROGRESS: ${Math.round((i/sections.length)*100)}%`);
                 }
-                log("SYNCHRONIZATION_COMPLETE. KERNEL_UPDATED.", "system");
+                log("SYNC_SUCCESSFUL");
             } catch (err) {
-                log("SYNC_FAILURE: " + err.message);
+                log("SYNC_FATAL: " + err.message, true);
             } finally {
                 syncBtn.disabled = false;
             }
         });
 
-        clearBtn.addEventListener('click', () => {
-            localStorage.removeItem('gh_token');
-            log("TOKEN_PURGED_FROM_LOCAL_STORAGE.", "system");
-        });
-
         async function handleInquiry() {
-            const query = inputEl.value.trim();
-            if (!query || !extractor) return;
-
-            log(`USER: ${query}`);
+            const val = inputEl.value.trim();
+            if (!val || !extractor) return;
+            log(`USER: ${val}`);
             inputEl.value = '';
-            btnEl.disabled = true;
 
             try {
-                const output = await extractor(query, { pooling: 'mean', normalize: true });
+                const output = await extractor(val, { pooling: 'mean', normalize: true });
                 const embedding = Array.from(output.data);
 
                 const { data, error } = await supabase.rpc('match_knowledge', {
@@ -145,16 +118,13 @@
                 });
 
                 if (error) throw error;
-
                 if (data && data.length > 0) {
-                    log(`<span class="glitch">GLITCH:</span> ${data[0].content}`);
+                    log(`AI: ${data[0].content}`);
                 } else {
-                    log("GLITCH: I haven't been trained on that yet! 😁");
+                    log("AI: NO_MATCH_IN_MEMORY");
                 }
             } catch (err) {
-                log("ERROR: " + err.message);
-            } finally {
-                btnEl.disabled = false;
+                log("QUERY_ERROR: " + err.message, true);
             }
         }
 
