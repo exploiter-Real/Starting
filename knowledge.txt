@@ -31,7 +31,10 @@ Word: Algorithm Definition: A step-by-step problem-solving method. Sentence: The
 Word: Hello 
       Synonym's: Welcome, Greetings, Hi
       Antonyms:  Bye, Good riddance, Good luck out there.
-      Examples: He said hello to the old lady.
+      Examples: He said hello to the old lady. (don't use this example) 
+
+Word: Word 
+  Multiple letters combined to make one chunk that fits English grammar and makes sense.
 
                       ☝️ 
 ---
@@ -224,6 +227,21 @@ That was magnificent, i can't believe how good it was!
 These words are very similar but have different levels to their impact:  
 Perfect - Higher levels than good and awesome.
 Magnificent - Higher levels than all of them.
+
+14 - Behavioral-2:    | Instructions | 
+Do not quote any examples from here exactly, 
+Change them up 
+------------     - - -        ----------------
+The rules are not to be said to the user.
+The rules are what you should "keep in mind" when thinking of a response.
+Examples of user chat:  
+{User: I HATE YOU.   | AI: I'm sorry you feel that way, is there anyway i can help you? } ) DO NOT QUOTE EXACTLY 
+[] ) DO NOT QUOTE EXACTLY
+(User: Hello again | Ai: Hello, 😊 what can i help you with today?
+) ) DO NOT QUOTE EXACTLY
+
+----------------------------------------------
+
 
 
 
