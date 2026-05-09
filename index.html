@@ -3,129 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KERNEL_V33_SINGULARITY</title>
+    <title>KERNEL_V33_SINGULARITY | GLITCH</title>
     <style>
-        body { background: #050505; color: #00ff41; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #console { width: 90%; max-width: 800px; height: 40vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 10px; }
-        #bulkInput { width: 90%; max-width: 800px; height: 100px; background: #111; border: 1px dashed #00ff41; color: #00ff41; padding: 10px; margin-bottom: 10px; font-size: 12px; outline: none; }
-        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; margin-bottom: 10px; }
-        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; }
-        button { background: #00ff41; color: #000; border: none; padding: 10px 15px; cursor: pointer; font-weight: bold; font-size: 11px; }
-        button:disabled { background: #004411; }
-        #uploadBtn { background: #00ccff; }
-        .sys { color: #888; }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #console { width: 90%; max-width: 800px; height: 60vh; border: 2px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 15px; box-shadow: 0 0 20px #00ff41; border-radius: 5px; }
+        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; outline: none; font-family: 'Courier New', monospace; }
+        button { background: #00ff41; color: #000; border: none; padding: 12px 20px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #fff; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #neuralBtn { background: #0088ff; color: #fff; }
+        .ai-msg { color: #00ff41; margin-bottom: 15px; white-space: pre-wrap; }
+        .user-msg { color: #00bcff; margin-bottom: 15px; font-weight: bold; }
+        .sys-msg { color: #ffae00; font-size: 0.8em; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div id="console">
-        <div class="sys">[SYSTEM]: TERMINAL_ACTIVE...</div>
+        <div class="sys-msg">[SYSTEM]: INITIALIZING_GLITCH_CORE...</div>
     </div>
 
-    <textarea id="bulkInput" placeholder="PASTE_KNOWLEDGE_TEXT_HERE (No formatting needed)"></textarea>
-
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Ask anything..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="Wait for engine..." autocomplete="off" disabled>
         <button id="sendBtn" disabled>SEND</button>
-        <button id="uploadBtn">UPLOAD_TO_SUPABASE</button>
+        <button id="neuralBtn">NEURALIZE</button>
     </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-        const SUPABASE_URL = 'https://bbvjxjmqnpsfdrlfuppp.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        // Initialize Supabase
+        const supabase = createClient('https://bbvjxjmqnpsfdrlfuppp.supabase.co', 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI');
+        
         let extractor;
         const consoleEl = document.getElementById('console');
-        const bulkEl = document.getElementById('bulkInput');
         const inputEl = document.getElementById('userInput');
         const btnEl = document.getElementById('sendBtn');
-        const uploadBtn = document.getElementById('uploadBtn');
+        const nBtn = document.getElementById('neuralBtn');
 
-        function log(msg) {
+        function log(msg, type = '') {
             const div = document.createElement('div');
-            div.textContent = `> ${msg}`;
+            div.className = type;
+            div.textContent = type === 'user-msg' ? `> USER: ${msg}` : `> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
+        // Initialize AI Engine
         async function init() {
             try {
                 extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("NEURAL_ENGINE_READY");
+                log("GLITCH_ENGINE_READY 😁", "ai-msg");
+                inputEl.disabled = false;
+                inputEl.placeholder = "Ask Glitch anything...";
                 btnEl.disabled = false;
-            } catch (err) {
-                log("INIT_ERR: " + err.message);
+            } catch (e) {
+                log("ENGINE_ERROR: RECHECK_INTERNET 💀", "sys-msg");
             }
         }
 
-        uploadBtn.addEventListener('click', async () => {
-            const rawText = bulkEl.value.trim();
-            if (!rawText) return log("INPUT_EMPTY");
-
-            uploadBtn.disabled = true;
-            log("PARSING_TEXT_FILE...");
-
-            try {
-                // Splits by any line that has significant text
-                const lines = rawText.split('\n').filter(l => l.trim().length > 5);
-                log(`INJECTING_${lines.length}_NODES_TO_DATABASE...`);
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    
-                    // 1. Generate Math Embedding (Vector)
-                    const output = await extractor(line, { pooling: 'mean', normalize: true });
-                    const embedding = Array.from(output.data);
-
-                    // 2. Direct Upload to Supabase
-                    const { error } = await supabase.from('neural_knowledge').insert({
-                        content: line,
-                        embedding: embedding
-                    });
-
-                    if (error) console.error("UPLOAD_ERR:", error);
-                    if (i % 5 === 0) log(`PROGRESS: ${Math.round((i/lines.length)*100)}%`);
+        // Neuralize button: Generates the "brain" for the row you pasted
+        nBtn.addEventListener('click', async () => {
+            nBtn.disabled = true;
+            log("SCANNING_NODES... 💀", "sys-msg");
+            
+            const { data, error } = await supabase.from('neural_knowledge').select('id, content').is('embedding', null);
+            
+            if (data && data.length > 0) {
+                for (let row of data) {
+                    log(`PROCESSING_MASTER_DATA...`, "sys-msg");
+                    const output = await extractor(row.content, { pooling: 'mean', normalize: true });
+                    await supabase.from('neural_knowledge').update({ embedding: Array.from(output.data) }).eq('id', row.id);
                 }
-                
-                log("UPLOAD_COMPLETE: DATABASE_SYNCED");
-                bulkEl.value = ""; // Clear box after success
-            } catch (err) {
-                log("FATAL_ERROR: " + err.message);
-            } finally {
-                uploadBtn.disabled = false;
+                log("BRAIN_SYNC_COMPLETE 😁", "ai-msg");
+            } else {
+                log("NO_NEW_DATA_TO_NEURALIZE 💀", "sys-msg");
             }
+            nBtn.disabled = false;
         });
 
-        async function handleInquiry() {
-            const val = inputEl.value.trim();
-            if (!val || !extractor) return;
-            log(`USER: ${val}`);
+        async function handleChat() {
+            const query = inputEl.value.trim();
+            if (!query) return;
+            
+            log(query, "user-msg");
             inputEl.value = '';
 
             try {
-                const output = await extractor(val, { pooling: 'mean', normalize: true });
-                const embedding = Array.from(output.data);
-
+                // Generate vector for the user's question
+                const output = await extractor(query, { pooling: 'mean', normalize: true });
+                
+                // Search Supabase for the closest match in your PDF data
                 const { data, error } = await supabase.rpc('match_knowledge', {
-                    query_embedding: embedding,
-                    match_threshold: 0.1, // Adjusted for broader matching
+                    query_embedding: Array.from(output.data),
+                    match_threshold: 0.1, // Set low to ensure it reads your one large block
                     match_count: 1
                 });
 
-                if (error) throw error;
-                if (data && data.length > 0) log(`AI: ${data[0].content}`);
-                else log("AI: NO_MATCH_FOUND");
-            } catch (err) {
-                log("ERR: " + err.message);
+                if (data && data.length > 0) {
+                    // This pulls the text you pasted directly
+                    log(`GLITCH: ${data[0].content}`, "ai-msg");
+                } else {
+                    log("GLITCH: I couldn't find that in my notes, but it sounds awesome! 😁", "ai-msg");
+                }
+            } catch (e) {
+                log("MEMORY_FAULT_ERROR 💀", "sys-msg");
             }
         }
 
-        btnEl.addEventListener('click', handleInquiry);
-        inputEl.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleInquiry(); });
+        btnEl.addEventListener('click', handleChat);
+        inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChat(); });
+        
         init();
     </script>
 </body>
