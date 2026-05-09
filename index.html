@@ -2,128 +2,180 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>KERNEL_V6_COLLECTOR</title>
+    <title>KERNEL_V10_OMNI</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
-        #out { border-left: 2px solid #0f0; padding-left: 15px; margin-top: 20px; white-space: pre-wrap; }
-        input { background: #000; border: 1px solid #0f0; color: #0f0; width: 80%; padding: 10px; outline: none; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 25px; line-height: 1.5; }
+        #out { border-left: 4px solid #0f0; padding: 20px; margin-top: 20px; background: #070707; box-shadow: inset 0 0 10px #000; min-height: 100px; }
+        .input-container { display: flex; gap: 15px; margin-top: 15px; }
+        input { background: #000; border: 1px solid #0f0; color: #0f0; flex-grow: 1; padding: 15px; outline: none; font-size: 1.2em; border-radius: 4px; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 35px; cursor: pointer; font-weight: 900; text-transform: uppercase; }
+        button:hover { background: #fff; filter: drop-shadow(0 0 10px #0f0); }
+        .hud { display: flex; gap: 20px; font-size: 0.7em; color: #0a0; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #111; padding-bottom: 5px; }
+        .sentiment-flag { color: #0f0; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>ARCHITECT_KERNEL // CORE_6.0</h2>
-    <input type="text" id="p" placeholder="QUERY_SYSTEM_OR_TEACH_COMMAND...">
-    <button id="s">EXECUTE</button>
-    <div id="out">SYSTEM_READY...</div>
+    <div class="hud">
+        <span>Logic: V10.0</span> | <span>Memory: Stacked</span> | <span id="mode">Mode: Idle</span> | <span id="mood" class="sentiment-flag">Mood: Neutral</span>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="p" placeholder="Input neural stream..." autofocus>
+        <button id="s">Execute</button>
+    </div>
+    
+    <div id="out">SYSTEM_READY... AWAITING_INPUT_STREAM.</div>
 
 <script type="module">
-    // --- USER CONFIG ---
-    const CONFIG = {
-        user: "Exploiter-real",
-        repo: "Starting",
-        file: "knowledge.txt"
-    };
-
+    const CONFIG = { user: "Exploiter-real", repo: "Starting", file: "knowledge.txt" };
     let archiveData = "";
+    let sessionStack = [];
+    const stopWords = ["is", "the", "a", "an", "what", "how", "tell", "me", "it", "that", "this"];
 
-    // 1. SECURE TOKEN RETRIEVAL
-    function getValidToken() {
-        let token = localStorage.getItem('kernel_key');
-        if (!token) {
-            token = prompt("KERNEL_ACCESS_DENIED: ENTER_GITHUB_PAT_TO_INITIALIZE_WRITE_ACCESS:");
-            if (token) localStorage.setItem('kernel_key', token);
+    // 1. SENTIMENT ENGINE
+    function analyzeSentiment(text) {
+        const triggers = {
+            frustrated: ["help", "stuck", "error", "wrong", "broken", "why", "fail", "slow"],
+            happy: ["success", "good", "done", "works", "sweet", "awesome", "fixed", "thanks"],
+            curious: ["what", "how", "could", "maybe", "can", "define"]
+        };
+        const low = text.toLowerCase();
+        for (let mood in triggers) {
+            if (triggers[mood].some(word => low.includes(word))) return mood;
         }
-        return token;
+        return "neutral";
     }
 
-    // 2. FETCH INITIAL ARCHIVE
-    async function loadArchive() {
-        const url = `https://raw.githubusercontent.com/${CONFIG.user}/${CONFIG.repo}/main/${CONFIG.file}`;
+    // 2. LINGUISTIC ENGINE (Advanced Grammar)
+    function humanize(raw, mood) {
+        let content = raw.replace(/Word:.*?Definition:/i, "").replace(/Instruction:/i, "").split("Sentence:")[0].trim();
+        
+        const intros = {
+            frustrated: ["I've prioritized the core data", "The solution is direct", "Focus on this"],
+            happy: ["Confirmed and successful", "Excellent result", "System optimization complete"],
+            neutral: ["Analysis indicates", "The record shows", "Logically"],
+            curious: ["Initial scan suggests", "Exploring the query", "Data retrieval indicates"]
+        };
+
+        const list = intros[mood] || intros.neutral;
+        let prefix = list[Math.floor(Math.random() * list.length)];
+        let punc = (mood === "happy") ? "!" : ".";
+        
+        content = content.charAt(0).toLowerCase() + content.slice(1);
+        return `${prefix}: ${content}${punc}`;
+    }
+
+    // 3. FUZZY LOGIC & ATTENTION
+    function fuzzyMatch(s1, s2) {
+        if (!s1 || !s2) return false;
+        let dist = 0;
+        const len = Math.max(s1.length, s2.length);
+        for (let i = 0; i < len; i++) if (s1[i] !== s2[i]) dist++;
+        return (1 - dist / len) > 0.75; 
+    }
+
+    function extractCore(input) {
+        const words = input.toLowerCase().replace(/[?.,!]/g, "").split(" ");
+        if (words.some(w => ["it", "that", "this"].includes(w)) && sessionStack.length > 0) return sessionStack[sessionStack.length - 1];
+        return words.filter(w => !stopWords.includes(w)).join(" ");
+    }
+
+    // 4. GITHUB & WEB TOOLS
+    async function sync(word, body, isInstr) {
+        const token = localStorage.getItem('kernel_key') || prompt("ENTER_PAT:");
+        localStorage.setItem('kernel_key', token);
+        const url = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.file}`;
+        const type = isInstr ? "Instruction:" : "Definition:";
+        const entry = `\nWord: ${word} ${type} ${body} Sentence: Automated_Sync_2026.`;
+
         try {
-            const res = await fetch(url);
-            archiveData = await res.text();
-            document.getElementById('out').innerText = "ARCHIVE_LOADED. READY_FOR_INPUT.";
-        } catch (e) { document.getElementById('out').innerText = "ARCHIVE_OFFLINE."; }
+            const file = await fetch(url, {headers: {"Authorization": `token ${token}`}}).then(r => r.json());
+            const updated = btoa(unescape(encodeURIComponent(atob(file.content) + entry)));
+            await fetch(url, { 
+                method: "PUT", 
+                headers: {"Authorization": `token ${token}`, "Content-Type": "application/json"}, 
+                body: JSON.stringify({ message: `INGEST: ${word}`, content: updated, sha: file.sha })
+            });
+            archiveData += entry;
+            return true;
+        } catch (e) { return false; }
     }
 
-    // 3. DUCKDUCKGO SEARCH (PROXY-BYPASS)
-    async function webSearch(query) {
+    async function webSearch(q) {
         const proxy = "https://api.allorigins.win/get?url=";
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
+        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`;
         try {
-            const res = await fetch(proxy + encodeURIComponent(ddgUrl));
+            const res = await fetch(proxy + encodeURIComponent(url));
             const data = await res.json();
             const json = JSON.parse(data.contents);
             return json.AbstractText || (json.RelatedTopics[0] ? json.RelatedTopics[0].Text : null);
         } catch (e) { return null; }
     }
 
-    // 4. GITHUB SYNC (THE COLLECTOR)
-    async function syncToRepo(word, def) {
-        const token = getValidToken();
-        const url = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.file}`;
-        const newEntry = `\nWord: ${word} Definition: ${def} Sentence: Ingested_via_Crawl_2026.`;
-
-        try {
-            const currentFile = await fetch(url, { headers: { "Authorization": `token ${token}` }}).then(r => r.json());
-            const updatedContent = btoa(unescape(encodeURIComponent(atob(currentFile.content) + newEntry)));
-
-            await fetch(url, {
-                method: "PUT",
-                headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: `COLLECTOR: Learned ${word}`,
-                    content: updatedContent,
-                    sha: currentFile.sha
-                })
-            });
-            archiveData += newEntry; // Update local state immediately
-            return true;
-        } catch (e) { return false; }
-    }
-
-    // 5. CREATIVE SYNTHESIZER
-    function synthesize(query, data) {
-        const templates = [
-            "Analysis: {fact}",
-            "Archive search for {word} suggests: {fact}",
-            "The digital record for {word} is clear: {fact}",
-            "I've processed this before. {fact}"
-        ];
-        const match = data.split('\n').reverse().find(l => l.toLowerCase().includes(query.toLowerCase()));
-        if (!match) return null;
-
-        const fact = match.replace(/Word:.*?Definition:/i, "").split("Sentence:")[0].trim();
-        const template = templates[Math.floor(Math.random() * templates.length)];
-        return template.replace("{word}", query).replace("{fact}", fact);
-    }
-
-    // 6. MAIN EXECUTION
+    // 5. THE BRAIN (Heuristic Selector)
     document.getElementById('s').onclick = async () => {
-        const query = document.getElementById('p').value.trim();
+        const val = document.getElementById('p').value.trim();
         const out = document.getElementById('out');
-        if (!query) return;
+        if (!val) return;
 
-        // Step A: Check local
-        const localResponse = synthesize(query, archiveData);
-        if (localResponse) {
-            out.innerText = localResponse;
-        } else {
-            // Step B: Web Search
-            out.innerText = "LOCAL_NULL... SCANNING_GLOBAL_NET...";
-            const webResult = await webSearch(query);
-            
-            if (webResult) {
-                out.innerText = "SYNCING_NEW_DATA_TO_GITHUB...";
-                const success = await syncToRepo(query, webResult);
-                out.innerText = success ? `[LEARNED]: ${webResult}` : `[TEMP_MODE]: ${webResult} (Sync Error)`;
+        const mood = analyzeSentiment(val);
+        const core = extractCore(val);
+        document.getElementById('mood').innerText = `Mood: ${mood.toUpperCase()}`;
+        
+        // Update Short-term Context
+        if (core) {
+            sessionStack.push(core);
+            if (sessionStack.length > 4) sessionStack.shift();
+        }
+
+        // STEP 1: Command Detection
+        if (val.toLowerCase().includes("whenever i say") && val.toLowerCase().includes("respond with")) {
+            document.getElementById('mode').innerText = "Mode: SYNC_INSTRUCTION";
+            const parts = val.toLowerCase().split("respond with");
+            const word = parts[0].replace("whenever i say ", "").trim();
+            await sync(word, parts[1].trim(), true);
+            out.innerText = `[PROTOCOL_LOCKED]: Reactive logic established for '${word}'.`;
+        } 
+        // STEP 2: Learning Detection
+        else if (val.toLowerCase().includes(" is a ") || val.toLowerCase().includes(" is actually ")) {
+            document.getElementById('mode').innerText = "Mode: AUTO_INGEST";
+            const bridge = val.toLowerCase().includes(" is actually ") ? " is actually " : " is a ";
+            const [word, fact] = val.split(new RegExp(bridge, 'i'));
+            await sync(word.trim(), fact.trim(), false);
+            out.innerText = `[NEURAL_UPDATE]: Knowledge of '${word.trim()}' committed to GitHub.`;
+        } 
+        // STEP 3: Recall or Search
+        else {
+            const match = archiveData.split('\n').reverse().find(line => {
+                const wordInLine = line.split(" ")[1];
+                return wordInLine && fuzzyMatch(core, wordInLine.toLowerCase());
+            });
+
+            if (match) {
+                document.getElementById('mode').innerText = "Mode: RECALL_LOCAL";
+                out.innerText = humanize(match, mood);
             } else {
-                out.innerText = "QUERY_REJECTED: NO_RELIABLE_DATA_FOUND.";
+                document.getElementById('mode').innerText = "Mode: WEB_CRAWL";
+                out.innerText = "LOCAL_NULL. EXPANDING_NEURAL_SENSORS...";
+                const web = await webSearch(core);
+                if (web) {
+                    await sync(core, web, false);
+                    out.innerText = humanize(`Word: ${core} Definition: ${web}`, mood);
+                } else {
+                    out.innerText = "ERROR: CONTEXT_NOT_FOUND_IN_KNOWN_UNIVERSE.";
+                }
             }
         }
+        document.getElementById('p').value = "";
     };
 
-    window.onload = loadArchive;
+    window.onload = async () => {
+        const url = `https://raw.githubusercontent.com/${CONFIG.user}/${CONFIG.repo}/main/${CONFIG.file}?t=${Date.now()}`;
+        try {
+            archiveData = await fetch(url).then(r => r.text());
+            out.innerText = "SYSTEM_SYNC: SUCCESS. ALL_SENSORS_ONLINE.";
+        } catch (e) { out.innerText = "BOOT_ERROR: CHECK_CONNECTION."; }
+    };
 </script>
 </body>
 </html>
