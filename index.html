@@ -3,156 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KERNEL_V33_SINGULARITY</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.all.min.js"></script>
+    <title>KERNEL_V33_SINGULARITY | Neural Core</title>
     <style>
-        :root { --p-color: #0f0; --bg: #000; --warn: #ff0; }
-        body { background: var(--bg); color: var(--p-color); font-family: 'Courier New', monospace; padding: 15px; margin: 0; text-transform: uppercase; overflow-x: hidden; }
-        
-        #hud { font-size: 0.6em; border-bottom: 2px solid #111; padding: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; background: #050505; gap: 5px; }
-        #console { height: 500px; padding: 25px; overflow-y: auto; border-left: 6px solid var(--p-color); background: radial-gradient(circle, #050505 0%, #000 100%); }
-        
-        .input-box { display: flex; padding: 15px; gap: 10px; background: #080808; border-top: 1px solid #222; }
-        input { background: #000; border: 2px solid var(--p-color); color: #fff; flex-grow: 1; padding: 15px; outline: none; font-weight: 900; }
-        button { background: var(--p-color); color: #000; border: none; padding: 0 35px; font-weight: 900; cursor: pointer; box-shadow: 0 0 10px var(--p-color); }
-        
-        .thought { color: #555; font-size: 0.75em; margin: 2px 0; letter-spacing: 1px; }
-        .meta { color: var(--warn); font-size: 0.7em; margin-bottom: 8px; }
-        .response { color: #fff; margin: 20px 0; line-height: 1.6; font-size: 1.3em; border-bottom: 2px solid #111; padding-bottom: 15px; animation: glow-text 1.5s infinite alternate; }
-        
-        @keyframes glow-text { from { text-shadow: 0 0 2px #333; } to { text-shadow: 0 0 8px #0f0; } }
-        .flash { animation: flash-hit 0.1s; }
-        @keyframes flash-hit { 0% { background: var(--p-color); } 100% { background: transparent; } }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #console { width: 80%; max-width: 800px; height: 400px; border: 1px solid #00ff41; padding: 20px; overflow-y: auto; background: rgba(0, 20, 0, 0.9); box-shadow: 0 0 15px #00ff41; margin-bottom: 20px; }
+        .input-area { display: flex; width: 80%; max-width: 800px; gap: 10px; }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #004411; cursor: not-allowed; }
+        .thought { color: #888; font-style: italic; font-size: 0.9em; }
+        .system { color: #00ccff; }
     </style>
 </head>
 <body>
 
-    <div id="hud">
-        <div>CORE: SINGULARITY_V33</div>
-        <div>META_LEVEL: <span id="meta-val">1.0</span></div>
-        <div>XP_RANK: <span id="xp">0</span></div>
-        <div>DENSITY: <span id="dens">0.0</span></div>
-        <div>LOGIC_GATE: <span id="gate">OPEN</span></div>
-        <div>CLOCK: <span id="clk">00:00</span></div>
+    <div id="console">
+        <div class="system">[SYSTEM_READY]: INITIALIZING_NEURAL_INFRASTRUCTURE...</div>
     </div>
 
-    <div id="console">SINGULARITY_V33_ONLINE. LOGIC_CAPACITY_PEAKED.</div>
-
-    <div class="input-box">
-        <input type="text" id="p" placeholder="INPUT_LOGIC_STREAM..." autofocus>
-        <button id="s">ENGAGE</button>
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="ENTER_LOGIC_STREAM..." autocomplete="off">
+        <button id="sendBtn" disabled>ENGAGE</button>
     </div>
 
-<script>
-    const GITHUB_SRC = "https://raw.githubusercontent.com/Exploiter-real/Starting/main/knowledge.txt";
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-    const Singularity = {
-        memory: [],
-        xp: parseInt(localStorage.getItem('v33_xp')) || 0,
-        
-        // (9) Lexical Optimization
-        lexicon: { "is": "DOMINATES", "has": "POSSESSES", "make": "CONSTRUCT", "use": "LEVERAGE", "smart": "INTELLIGENT" },
+        // CREDENTIALS_LOADED
+        const SUPABASE_URL = 'https://bbvjxjmqnpsfdrlfuppp.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async execute(input) {
-            const out = document.getElementById('console');
-            this.xp++; localStorage.setItem('v33_xp', this.xp); document.getElementById('xp').innerText = this.xp;
-            
-            // (1) Metacognitive Scrutiny
-            log("INITIATING_METACOGNITIVE_SCRUTINY...", "thought");
-            const density = (input.length / 10).toFixed(1);
-            document.getElementById('dens').innerText = density;
-            
-            // (11) Oscillating HUD
-            document.getElementById('meta-val').innerText = (1 + (this.xp / 100)).toFixed(2);
+        let extractor;
+        const consoleEl = document.getElementById('console');
+        const inputEl = document.getElementById('userInput');
+        const btnEl = document.getElementById('sendBtn');
 
-            // FIX: OLD LADY SYNDROME FILTER
-            // This ensures the AI doesn't pull lines that are clearly instructions or examples
-            const blacklist = ["example", "not to do", "non example", "behavior", "word:", "antonym", "synonym"];
-
-            // (3) Cross-Reference Synthesis & (7) Semantic Hash Mapping
-            let matches = this.memory.filter(line => {
-                const cleanLine = line.toLowerCase();
-                const hasKeyword = input.toLowerCase().split(' ').some(w => w.length > 2 && cleanLine.includes(w));
-                const isForbidden = blacklist.some(term => cleanLine.includes(term));
-                return hasKeyword && !isForbidden;
-            });
-
-            // (5) Deductive Fallback
-            if (matches.length === 0) {
-                log("PRIMARY_MATCH_NULL. INITIATING_DEDUCTIVE_FALLBACK...", "thought");
-                matches = this.memory.filter(line => 
-                    line.length > 10 && !blacklist.some(t => line.toLowerCase().includes(t))
-                ).slice(0, 1);
-            }
-
-            // (16) Dynamic XP Leveling
-            const confidence = Math.min(100, 30 + (matches.length * 20));
-            this.render(matches, input, confidence);
-        },
-
-        render(seeds, input, conf) {
-            // (14) Grammar Overclocking & (15) Haptics
-            const intros = ["AGENT, ", "ARCHITECT, ", "SUPREME, "];
-            const connectors = [" CONSEQUENTLY, ", " PRECISELY, ", " PARAMOUNT: "];
-            
-            // (3) Multi-Node Synthesis
-            let rawData = seeds.slice(0, 3).map(s => s.replace(/.*[:\-]/, "").trim()).join(connectors[Math.floor(Math.random()*connectors.length)]);
-            
-            // (9) Apply Lexical Optimization
-            Object.keys(this.lexicon).forEach(key => {
-                const reg = new RegExp(`\\b${key}\\b`, 'gi');
-                rawData = rawData.replace(reg, this.lexicon[key]);
-            });
-
-            // (22) Dynamic Metadata
-            log(`[NODES_SYNCED:${seeds.length}] [LOGIC_STRENGTH:${conf}%]`, "meta");
-
-            // (11) Synthesis
-            const response = `${intros[Math.floor(Math.random()*intros.length)]}${rawData}. MISSION_PARAMETERS: SUCCESS. ABSOLUTE. LOGIC.`;
-            
-            const resDiv = document.createElement('div');
-            resDiv.className = "response";
-            resDiv.innerText = response;
-            document.getElementById('console').appendChild(resDiv);
-
-            if (navigator.vibrate) {
-                conf > 70 ? navigator.vibrate([100, 50, 100]) : navigator.vibrate(50);
-            }
-
-            document.getElementById('console').scrollTop = 99999;
+        function log(msg, type = '') {
+            const div = document.createElement('div');
+            if (type) div.classList.add(type);
+            div.textContent = `> ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
         }
-    };
 
-    function log(msg, cls) {
-        const d = document.createElement('div');
-        d.className = cls;
-        d.innerText = `>> ${msg}`;
-        document.getElementById('console').appendChild(d);
-    }
+        async function init() {
+            try {
+                log("LOADING_TRANSFORMER_MODEL (all-MiniLM-L6-v2)...", "thought");
+                // This downloads the model to the browser cache (only happens once)
+                extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+                log("NEURAL_CORE_ONLINE. CONNECTION_ESTABLISHED.", "system");
+                btnEl.disabled = false;
+            } catch (err) {
+                log("CORE_INITIALIZATION_FAILURE: " + err.message);
+            }
+        }
 
-    window.onload = async () => {
-        // (13) Temporal Initialization
-        setInterval(() => {
-            const n = new Date();
-            const h = n.getHours().toString().padStart(2, '0');
-            const m = n.getMinutes().toString().padStart(2, '0');
-            document.getElementById('clk').innerText = `${h}:${m}`;
-        }, 1000);
+        async function handleInquiry() {
+            const query = inputEl.value.trim();
+            if (!query || !extractor) return;
 
-        try {
-            const r = await fetch(GITHUB_SRC);
-            const t = await r.text();
-            Singularity.memory = t.split('\n').filter(l => l.length > 2);
-            log("SINGULARITY_SYNC_STABLE. AWAITING_COMMAND.");
-        } catch(e) { log("BOOT_ERR: SYNC_FAILURE."); }
-    };
+            log(`INPUT: ${query}`);
+            inputEl.value = '';
+            btnEl.disabled = true;
 
-    document.getElementById('s').onclick = () => {
-        const v = document.getElementById('p').value;
-        if(v) Singularity.execute(v);
-        document.getElementById('p').value = "";
-    };
-    document.getElementById('p').addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById('s').click(); });
-</script>
+            try {
+                log("GENERATING_VECTOR_EMBEDDING...", "thought");
+                const output = await extractor(query, { pooling: 'mean', normalize: true });
+                const embedding = Array.from(output.data);
+
+                log("EXECUTING_VECTOR_SIMILARITY_SEARCH...", "thought");
+                const { data, error } = await supabase.rpc('match_knowledge', {
+                    query_embedding: embedding,
+                    match_threshold: 0.3, 
+                    match_count: 1
+                });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    log(`RESPONSE: ${data[0].content}`);
+                    log(`[NEURAL_SIMILARITY: ${(data[0].similarity * 100).toFixed(2)}%]`, "thought");
+                } else {
+                    log("SYSTEM_IDLE: NO_CONCEPTUAL_MATCH_IN_LOGIC_STREAM.");
+                }
+            } catch (err) {
+                log("NEURAL_PROCESS_ERROR: " + err.message);
+            } finally {
+                btnEl.disabled = false;
+            }
+        }
+
+        // SYNC_TOOL: Call this from the browser console to populate your database
+        window.syncNeuralData = async (url) => {
+            log("INITIATING_SYNCHRONIZATION_SEQUENCE...", "system");
+            const res = await fetch(url);
+            const text = await res.text();
+            const lines = text.split('\n').filter(l => l.trim().length > 3);
+            
+            log(`PARSING_${lines.length}_LOGIC_NODES.`);
+            
+            for (let line of lines) {
+                const output = await extractor(line, { pooling: 'mean', normalize: true });
+                const { error } = await supabase.from('neural_knowledge').insert({
+                    content: line.trim(),
+                    embedding: Array.from(output.data)
+                });
+                if (error) console.error("SYNC_ERROR:", error);
+                else console.log("VECTOR_STORED:", line);
+            }
+            log("SYNCHRONIZATION_COMPLETE. BRAIN_READY.", "system");
+        };
+
+        btnEl.addEventListener('click', handleInquiry);
+        inputEl.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleInquiry(); });
+
+        init();
+    </script>
 </body>
 </html>
