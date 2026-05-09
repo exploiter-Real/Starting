@@ -2,121 +2,106 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KERNEL_V33_SINGULARITY | GLITCH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KERNEL_V33 | MOBILE_NEURAL_CORE</title>
+    <script src="https://unpkg.com/brain.js"></script>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #console { width: 90%; max-width: 800px; height: 60vh; border: 2px solid #00ff41; padding: 15px; overflow-y: auto; background: #000; margin-bottom: 15px; box-shadow: 0 0 20px #00ff41; border-radius: 5px; }
-        .input-area { display: flex; width: 90%; max-width: 800px; gap: 10px; }
-        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; outline: none; font-family: 'Courier New', monospace; }
-        button { background: #00ff41; color: #000; border: none; padding: 12px 20px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #fff; }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; }
-        #neuralBtn { background: #0088ff; color: #fff; }
-        .ai-msg { color: #00ff41; margin-bottom: 15px; white-space: pre-wrap; }
-        .user-msg { color: #00bcff; margin-bottom: 15px; font-weight: bold; }
-        .sys-msg { color: #ffae00; font-size: 0.8em; margin-bottom: 10px; }
+        /* Mobile-first hacker aesthetic */
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        #status { color: #ffae00; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        #console { flex-grow: 1; border: 2px solid #00ff41; padding: 10px; overflow-y: auto; background: #000; box-shadow: inset 0 0 10px #00ff41; border-radius: 5px; font-size: 14px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+        .input-area { display: flex; gap: 5px; height: 50px; }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; font-size: 16px; /* Prevents zoom on focus */ }
+        button { background: #00ff41; color: #000; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .ai-msg { color: #00ff41; margin-bottom: 8px; }
+        .user-msg { color: #00bcff; margin-bottom: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="console">
-        <div class="sys-msg">[SYSTEM]: INITIALIZING_GLITCH_CORE...</div>
-    </div>
+    <div id="status">INIT: AWAITING_SYNAPSE...</div>
+    <div id="console"></div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Wait for engine..." autocomplete="off" disabled>
+        <input type="text" id="userInput" placeholder="Wait for mapping..." disabled>
         <button id="sendBtn" disabled>SEND</button>
-        <button id="neuralBtn">NEURALIZE</button>
     </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
-
-        // Initialize Supabase
+        
         const supabase = createClient('https://bbvjxjmqnpsfdrlfuppp.supabase.co', 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI');
         
-        let extractor;
+        // LSTM is better for text but heavier on mobile. 
+        // If it crashes, change 'LSTM' to 'RNN' for faster, lighter training.
+        const net = new brain.recurrent.LSTM(); 
+        
         const consoleEl = document.getElementById('console');
         const inputEl = document.getElementById('userInput');
         const btnEl = document.getElementById('sendBtn');
-        const nBtn = document.getElementById('neuralBtn');
+        const statusEl = document.getElementById('status');
 
-        function log(msg, type = '') {
+        function log(msg, type = 'ai-msg') {
             const div = document.createElement('div');
             div.className = type;
-            div.textContent = type === 'user-msg' ? `> USER: ${msg}` : `> ${msg}`;
+            div.textContent = `> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
-        // Initialize AI Engine
-        async function init() {
-            try {
-                extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("GLITCH_ENGINE_READY 😁", "ai-msg");
-                inputEl.disabled = false;
-                inputEl.placeholder = "Ask Glitch anything...";
-                btnEl.disabled = false;
-            } catch (e) {
-                log("ENGINE_ERROR: RECHECK_INTERNET 💀", "sys-msg");
+        async function trainBrain() {
+            statusEl.textContent = "STATUS: FETCHING_LOGIC_STREAM... 💀";
+            
+            const { data, error } = await supabase.from('neural_knowledge').select('content');
+            
+            if (data && data.length > 0) {
+                statusEl.textContent = "STATUS: MAPPING_NEURONS (Stay on this screen)... 🧠";
+                
+                // We chunk the data for mobile processing
+                const trainingData = data.map(item => ({
+                    input: item.content.split(' ').slice(0, 3).join(' '), // Short context for faster learning
+                    output: item.content
+                }));
+
+                try {
+                    await net.train(trainingData, {
+                        iterations: 50, // Lowered for Android performance
+                        log: (details) => console.log(details),
+                        errorThresh: 0.02
+                    });
+
+                    statusEl.textContent = "STATUS: NEURAL_CORE_ONLINE 😁";
+                    inputEl.disabled = false;
+                    btnEl.disabled = false;
+                    inputEl.placeholder = "Talk to Glitch...";
+                    log("SYSTEM READY. ARCHIVE KERNEL V33 DEPLOYED.", "ai-msg");
+                } catch (e) {
+                    statusEl.textContent = "STATUS: TRAINING_CRASHED 💀";
+                    log("ERROR: Mobile memory limit exceeded. Try fewer lines of logic.");
+                }
             }
         }
 
-        // Neuralize button: Generates the "brain" for the row you pasted
-        nBtn.addEventListener('click', async () => {
-            nBtn.disabled = true;
-            log("SCANNING_NODES... 💀", "sys-msg");
-            
-            const { data, error } = await supabase.from('neural_knowledge').select('id, content').is('embedding', null);
-            
-            if (data && data.length > 0) {
-                for (let row of data) {
-                    log(`PROCESSING_MASTER_DATA...`, "sys-msg");
-                    const output = await extractor(row.content, { pooling: 'mean', normalize: true });
-                    await supabase.from('neural_knowledge').update({ embedding: Array.from(output.data) }).eq('id', row.id);
-                }
-                log("BRAIN_SYNC_COMPLETE 😁", "ai-msg");
-            } else {
-                log("NO_NEW_DATA_TO_NEURALIZE 💀", "sys-msg");
-            }
-            nBtn.disabled = false;
-        });
-
         async function handleChat() {
-            const query = inputEl.value.trim();
+            const query = inputEl.value;
             if (!query) return;
-            
             log(query, "user-msg");
             inputEl.value = '';
 
-            try {
-                // Generate vector for the user's question
-                const output = await extractor(query, { pooling: 'mean', normalize: true });
-                
-                // Search Supabase for the closest match in your PDF data
-                const { data, error } = await supabase.rpc('match_knowledge', {
-                    query_embedding: Array.from(output.data),
-                    match_threshold: 0.1, // Set low to ensure it reads your one large block
-                    match_count: 1
-                });
-
-                if (data && data.length > 0) {
-                    // This pulls the text you pasted directly
-                    log(`GLITCH: ${data[0].content}`, "ai-msg");
-                } else {
-                    log("GLITCH: I couldn't find that in my notes, but it sounds awesome! 😁", "ai-msg");
-                }
-            } catch (e) {
-                log("MEMORY_FAULT_ERROR 💀", "sys-msg");
+            // The brain generates a response based on the logic patterns
+            const response = net.run(query);
+            
+            if (response) {
+                log(`GLITCH: ${response} 😁`);
+            } else {
+                log(`GLITCH: Unmapped logic path. 💀`);
             }
         }
 
         btnEl.addEventListener('click', handleChat);
         inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChat(); });
-        
-        init();
+
+        trainBrain();
     </script>
 </body>
 </html>
