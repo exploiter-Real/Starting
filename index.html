@@ -3,60 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KERNEL_V33_SINGULARITY | Neural Core</title>
+    <title>KERNEL_V33_SINGULARITY | Glitch AI</title>
     <style>
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #console { width: 80%; max-width: 800px; height: 400px; border: 1px solid #00ff41; padding: 20px; overflow-y: auto; background: rgba(0, 20, 0, 0.9); box-shadow: 0 0 15px #00ff41; margin-bottom: 20px; }
-        .input-area { display: flex; width: 80%; max-width: 800px; gap: 10px; }
-        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; }
-        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #004411; cursor: not-allowed; }
-        .thought { color: #888; font-style: italic; font-size: 0.9em; }
-        .system { color: #00ccff; }
+        #console { width: 90%; max-width: 800px; height: 50vh; border: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: rgba(0, 10, 0, 0.95); box-shadow: 0 0 10px #00ff41; margin-bottom: 15px; font-size: 14px; }
+        .input-area { display: flex; width: 90%; max-width: 800px; gap: 8px; flex-wrap: wrap; }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; outline: none; min-width: 200px; }
+        .btns { display: flex; gap: 5px; width: 100%; }
+        button { flex: 1; background: #00ff41; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        button:disabled { background: #004411; color: #002200; }
+        #syncBtn { background: #00ccff; }
+        .thought { color: #0088ff; font-style: italic; font-size: 0.85em; }
+        .system { color: #ffcc00; font-weight: bold; }
+        .glitch { color: #00ff41; }
     </style>
 </head>
 <body>
 
     <div id="console">
-        <div class="system">[SYSTEM_READY]: INITIALIZING_NEURAL_INFRASTRUCTURE...</div>
+        <div class="system">[BOOT_SEQUENCE]: INITIALIZING_GLITCH_OS...</div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="ENTER_LOGIC_STREAM..." autocomplete="off">
-        <button id="sendBtn" disabled>ENGAGE</button>
+        <input type="text" id="userInput" placeholder="TYPE_MESSAGE_HERE..." autocomplete="off">
+        <div class="btns">
+            <button id="sendBtn" disabled>ENGAGE</button>
+            <button id="syncBtn">SYNC_CORE</button>
+        </div>
     </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
 
-        // CREDENTIALS_LOADED
+        // DATABASE_CONFIGURATION
         const SUPABASE_URL = 'https://bbvjxjmqnpsfdrlfuppp.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // KNOWLEDGE_SOURCE
+        const RAW_KNOWLEDGE_URL = "https://corsproxy.io/?https://raw.githubusercontent.com/exploiter-Real/Starting/refs/heads/main/knowledge.txt";
 
         let extractor;
         const consoleEl = document.getElementById('console');
         const inputEl = document.getElementById('userInput');
         const btnEl = document.getElementById('sendBtn');
+        const syncBtn = document.getElementById('syncBtn');
 
         function log(msg, type = '') {
             const div = document.createElement('div');
             if (type) div.classList.add(type);
-            div.textContent = `> ${msg}`;
+            div.innerHTML = `> ${msg}`;
             consoleEl.appendChild(div);
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
         async function init() {
             try {
-                log("LOADING_TRANSFORMER_MODEL (all-MiniLM-L6-v2)...", "thought");
-                // This downloads the model to the browser cache (only happens once)
+                log("LOADING_NEURAL_WEIGHTS...", "thought");
                 extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-                log("NEURAL_CORE_ONLINE. CONNECTION_ESTABLISHED.", "system");
+                log("NEURAL_CORE_ONLINE. READY_FOR_LOGIC_STREAMS.", "system");
                 btnEl.disabled = false;
             } catch (err) {
-                log("CORE_INITIALIZATION_FAILURE: " + err.message);
+                log("CORE_FATAL_ERROR: " + err.message);
             }
         }
 
@@ -64,57 +73,66 @@
             const query = inputEl.value.trim();
             if (!query || !extractor) return;
 
-            log(`INPUT: ${query}`);
+            log(`USER: ${query}`);
             inputEl.value = '';
             btnEl.disabled = true;
 
             try {
-                log("GENERATING_VECTOR_EMBEDDING...", "thought");
+                log("CONVERTING_TO_VECTOR_COORDINATES...", "thought");
                 const output = await extractor(query, { pooling: 'mean', normalize: true });
                 const embedding = Array.from(output.data);
 
-                log("EXECUTING_VECTOR_SIMILARITY_SEARCH...", "thought");
+                log("SCANNING_SUPABASE_MEMORY...", "thought");
                 const { data, error } = await supabase.rpc('match_knowledge', {
                     query_embedding: embedding,
-                    match_threshold: 0.3, 
+                    match_threshold: 0.25,
                     match_count: 1
                 });
 
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    log(`RESPONSE: ${data[0].content}`);
-                    log(`[NEURAL_SIMILARITY: ${(data[0].similarity * 100).toFixed(2)}%]`, "thought");
+                    log(`<span class="glitch">GLITCH:</span> ${data[0].content}`);
+                    log(`[SIMILARITY_SCORE: ${(data[0].similarity * 100).toFixed(1)}%]`, "thought");
                 } else {
-                    log("SYSTEM_IDLE: NO_CONCEPTUAL_MATCH_IN_LOGIC_STREAM.");
+                    log("SYSTEM_IDLE: NO_SIMILAR_NODES_FOUND.");
                 }
             } catch (err) {
-                log("NEURAL_PROCESS_ERROR: " + err.message);
+                log("NEURAL_ERROR: " + err.message);
             } finally {
                 btnEl.disabled = false;
             }
         }
 
-        // SYNC_TOOL: Call this from the browser console to populate your database
-        window.syncNeuralData = async (url) => {
-            log("INITIATING_SYNCHRONIZATION_SEQUENCE...", "system");
-            const res = await fetch(url);
-            const text = await res.text();
-            const lines = text.split('\n').filter(l => l.trim().length > 3);
-            
-            log(`PARSING_${lines.length}_LOGIC_NODES.`);
-            
-            for (let line of lines) {
-                const output = await extractor(line, { pooling: 'mean', normalize: true });
-                const { error } = await supabase.from('neural_knowledge').insert({
-                    content: line.trim(),
-                    embedding: Array.from(output.data)
-                });
-                if (error) console.error("SYNC_ERROR:", error);
-                else console.log("VECTOR_STORED:", line);
+        syncBtn.addEventListener('click', async () => {
+            syncBtn.disabled = true;
+            log("INITIATING_CLOUD_SYNC_FROM_GITHUB...", "system");
+
+            try {
+                const res = await fetch(RAW_KNOWLEDGE_URL);
+                if (!res.ok) throw new Error("Could not fetch knowledge.txt");
+                
+                const text = await res.text();
+                // Filter out empty lines and very short noise
+                const chunks = text.split('\n').filter(l => l.trim().length > 3);
+                
+                log(`PARSING_${chunks.length}_NEURAL_OBJECTS...`);
+
+                for (let chunk of chunks) {
+                    const output = await extractor(chunk, { pooling: 'mean', normalize: true });
+                    const { error } = await supabase.from('neural_knowledge').insert({
+                        content: chunk.trim(),
+                        embedding: Array.from(output.data)
+                    });
+                    if (error) console.error("CHUNK_SYNC_ERROR:", error);
+                }
+                log("SYNCHRONIZATION_COMPLETE. BRAIN_READY.", "system");
+            } catch (err) {
+                log("SYNC_FAILURE: " + err.message);
+            } finally {
+                syncBtn.disabled = false;
             }
-            log("SYNCHRONIZATION_COMPLETE. BRAIN_READY.", "system");
-        };
+        });
 
         btnEl.addEventListener('click', handleInquiry);
         inputEl.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleInquiry(); });
