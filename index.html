@@ -34,7 +34,7 @@
         
         // LSTM is better for text but heavier on mobile. 
         // If it crashes, change 'LSTM' to 'RNN' for faster, lighter training.
-        const net = new brain.recurrent.LSTM(); 
+        const net = new brain.recurrent.RNN(); 
         
         const consoleEl = document.getElementById('console');
         const inputEl = document.getElementById('userInput');
