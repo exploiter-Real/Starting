@@ -8,11 +8,12 @@
     <style>
         /* Mobile-first hacker aesthetic */
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        #status { color: #ffae00; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        #status { color: #ffae00; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s ease; }
         #console { flex-grow: 1; border: 2px solid #00ff41; padding: 10px; overflow-y: auto; background: #000; box-shadow: inset 0 0 10px #00ff41; border-radius: 5px; font-size: 14px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
         .input-area { display: flex; gap: 5px; height: 50px; }
-        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; font-size: 16px; /* Prevents zoom on focus */ }
+        input { flex-grow: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; outline: none; font-size: 16px; }
         button { background: #00ff41; color: #000; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        button:disabled { background: #113311; color: #555; }
         .ai-msg { color: #00ff41; margin-bottom: 8px; }
         .user-msg { color: #00bcff; margin-bottom: 8px; }
     </style>
@@ -21,12 +22,11 @@
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
     
-
     <div id="status">INIT: AWAITING_SYNAPSE...</div>
     <div id="console"></div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Wait for mapping..." disabled>
+        <input type="text" id="userInput" placeholder="Mapping neural pathways..." disabled>
         <button id="sendBtn" disabled>SEND</button>
     </div>
 
@@ -35,9 +35,10 @@
         
         const supabase = createClient('https://bbvjxjmqnpsfdrlfuppp.supabase.co', 'sb_publishable_MVWfIRUeN2FICpydXo2fig_yeruhyUI');
         
-        // LSTM is better for text but heavier on mobile. 
-        // If it crashes, change 'LSTM' to 'RNN' for faster, lighter training.
-        const net = new brain.recurrent.RNN(); 
+        // Configured with compressed hidden layers to protect mobile memory limits
+        const net = new brain.recurrent.RNN({
+            hiddenLayers: [10] 
+        }); 
         
         const consoleEl = document.getElementById('console');
         const inputEl = document.getElementById('userInput');
@@ -55,49 +56,75 @@
         async function trainBrain() {
             statusEl.textContent = "STATUS: FETCHING_LOGIC_STREAM... 💀";
             
-            const { data, error } = await supabase.from('neural_knowledge').select('content');
-            
-            if (data && data.length > 0) {
-                statusEl.textContent = "STATUS: MAPPING_NEURONS (Stay on this screen)... 🧠";
+            try {
+                const { data, error } = await supabase.from('neural_knowledge').select('content');
                 
-                // We chunk the data for mobile processing
-                const trainingData = data.map(item => ({
-                    input: item.content.split(' ').slice(0, 3).join(' '), // Short context for faster learning
-                    output: item.content
-                }));
+                if (error) throw error;
 
-                try {
-                    await net.train(trainingData, {
-                        iterations: 50, // Lowered for Android performance
-                        log: (details) => console.log(details),
-                        errorThresh: 0.02
-                    });
+                // Protect mobile RAM: Clean text data and filter out long paragraphs
+                const trainingData = (data || [])
+                    .filter(item => item && item.content && item.content.trim().length > 0)
+                    .map(item => item.content.toLowerCase().trim())
+                    .filter(text => text.split(' ').length <= 4); // Keeps matrix footprint ultra-light
 
-                    statusEl.textContent = "STATUS: NEURAL_CORE_ONLINE 😁";
-                    inputEl.disabled = false;
-                    btnEl.disabled = false;
-                    inputEl.placeholder = "Talk to Glitch...";
-                    log("SYSTEM READY. ARCHIVE KERNEL V33 DEPLOYED.", "ai-msg");
-                } catch (e) {
-                    statusEl.textContent = "STATUS: TRAINING_CRASHED 💀";
-                    log("ERROR: Mobile memory limit exceeded. Try fewer lines of logic.");
-                }
+                // Fallback training tokens if the database returns empty rows
+                const finalSet = trainingData.length > 0 ? trainingData : ["glitch core", "system online", "logic active"];
+
+                log(`DATABASE SYNC COMPLETE. PROCESSING ${finalSet.length} STREAMS.`);
+                
+                // FORCE RENDER PAUSE: Gives the browser thread exactly 200ms to physically paint 
+                // the "MAPPING_NEURONS" status on screen before the engine locks the thread for math crunching.
+                statusEl.textContent = "STATUS: MAPPING_NEURONS... 🧠";
+                
+                setTimeout(async () => {
+                    try {
+                        await net.train(finalSet, {
+                            iterations: 35, // Balanced sweet spot for character association on mobile CPUs
+                            log: (details) => console.log(`[Core] ${details}`),
+                            errorThresh: 0.03
+                        });
+
+                        // Unlocking generative interface
+                        statusEl.textContent = "STATUS: ADAPTIVE_CORE_ONLINE 🧠";
+                        statusEl.style.color = "#00bcff";
+                        inputEl.disabled = false;
+                        btnEl.disabled = false;
+                        inputEl.placeholder = "Seed a word (e.g., system)...";
+                        log("DYNAMIC KERNEL DEPLOYED. READY FOR GENERATIVE SEED PATHS.", "ai-msg");
+
+                    } catch (trainError) {
+                        statusEl.textContent = "STATUS: COMPILE_CRASH 💀";
+                        log("ERROR: Matrix compilation failed. Check console allocations.");
+                        console.error(trainError);
+                    }
+                }, 200);
+
+            } catch (fetchError) {
+                statusEl.textContent = "STATUS: PIPELINE_BLOCKED 💀";
+                log(`CRITICAL: Connection dropped. ${fetchError.message || fetchError}`);
+                console.error(fetchError);
             }
         }
 
         async function handleChat() {
-            const query = inputEl.value;
+            const query = inputEl.value.toLowerCase().trim();
             if (!query) return;
+            
             log(query, "user-msg");
             inputEl.value = '';
 
-            // The brain generates a response based on the logic patterns
-            const response = net.run(query);
-            
-            if (response) {
-                log(`GLITCH: ${response} 😁`);
-            } else {
-                log(`GLITCH: Unmapped logic path. 💀`);
+            try {
+                // Generates characters sequentially starting directly from the user's input word
+                const prediction = net.run(query);
+                
+                if (prediction) {
+                    log(`GLITCH: ${query}${prediction} 🧬`);
+                } else {
+                    log(`GLITCH: Unmapped transition path for "${query}". Try an alternate word string.`, "ai-msg");
+                }
+            } catch (runErr) {
+                log("GLITCH: Dynamic link execution failure.");
+                console.error(runErr);
             }
         }
 
